@@ -1,103 +1,172 @@
-import Image from "next/image";
+import { Users, ShoppingCart, DollarSign, BookOpen, ChefHat, TrendingUp } from "lucide-react";
+
+type StatCard = {
+  title: string;
+  value: string | number;
+  delta: string;
+  icon: (props: any) => JSX.Element;
+  gradient: string;
+  note?: string;
+};
+
+const stats: StatCard[] = [
+  { title: "Users", value: 1247, delta: "+12%", icon: Users, gradient: "gradient-primary", note: "Active this month" },
+  { title: "Orders", value: 3421, delta: "+8%", icon: ShoppingCart, gradient: "gradient-success", note: "Processed" },
+  { title: "Revenue", value: "$45,678", delta: "+15%", icon: DollarSign, gradient: "gradient-warning", note: "Last 30 days" },
+  { title: "Books", value: 156, delta: "+3%", icon: BookOpen, gradient: "gradient-secondary" },
+  { title: "Recipes", value: 89, delta: "+7%", icon: ChefHat, gradient: "gradient-danger" },
+];
+
+const revenuePoints = [12, 14, 11, 16, 18, 15, 20, 22, 19, 24, 26, 30];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-8 animate-fade-in">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gradient mb-2">Dashboard</h1>
+        <p className="text-slate-600">Overview of your Munchclub platform</p>
+        <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto mt-4"></div>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {stats.map((s, i) => (
+          <div key={s.title} className="card-modern p-6 group hover:scale-105 transition-all duration-300" style={{ animationDelay: `${i * 0.05}s` }}>
+            <div className="flex items-start justify-between mb-4">
+              <div className={`p-4 rounded-2xl ${s.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <s.icon className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex items-center space-x-1">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-semibold text-green-600">{s.delta}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-600">{s.title}</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{s.value}</p>
+              {s.note && <p className="text-xs text-slate-500 mt-1">{s.note}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Revenue + Funnel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="card-modern p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-slate-900">Revenue Overview</h3>
+            <span className="text-sm text-slate-500">Last 12 months</span>
+          </div>
+          <div className="h-56">
+            <svg viewBox="0 0 400 160" className="w-full h-full">
+              <defs>
+                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polyline
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth="3"
+                points={revenuePoints
+                  .map((v, idx) => {
+                    const x = (idx / (revenuePoints.length - 1)) * 380 + 10;
+                    const y = 150 - (v / 32) * 140;
+                    return `${x},${y}`;
+                  })
+                  .join(" ")}
+              />
+              <polygon
+                fill="url(#grad)"
+                points={(() => {
+                  const pts = revenuePoints.map((v, idx) => {
+                    const x = (idx / (revenuePoints.length - 1)) * 380 + 10;
+                    const y = 150 - (v / 32) * 140;
+                    return `${x},${y}`;
+                  });
+                  return `10,150 ${pts.join(" ")} 390,150`;
+                })()}
+              />
+              <line x1="10" y1="150" x2="390" y2="150" stroke="#e2e8f0" />
+              <line x1="10" y1="10" x2="10" y2="150" stroke="#e2e8f0" />
+            </svg>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="card-modern p-6">
+          <h3 className="text-xl font-bold text-slate-900 mb-4">Conversion Funnel</h3>
+          <div className="space-y-4">
+            {[
+              { label: "Visits", value: 10000, color: "bg-blue-600" },
+              { label: "Views", value: 6800, color: "bg-indigo-500" },
+              { label: "Adds to cart", value: 2400, color: "bg-purple-500" },
+              { label: "Orders", value: 1200, color: "bg-emerald-500" },
+            ].map((row) => (
+              <div key={row.label}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-slate-600">{row.label}</span>
+                  <span className="font-semibold text-slate-900">{row.value.toLocaleString()}</span>
+                </div>
+                <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${row.color}`} style={{ width: `${(row.value / 10000) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders + Top Items */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="card-modern p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-slate-900">Recent Orders</h3>
+            <button className="btn-secondary text-sm">View all</button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500">
+                  <th className="py-2">Order</th>
+                  <th className="py-2">Customer</th>
+                  <th className="py-2">Total</th>
+                  <th className="py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="hover:bg-slate-50/60">
+                    <td className="py-3 font-medium text-slate-900">#{1000 + i}</td>
+                    <td className="py-3 text-slate-600">Customer {i + 1}</td>
+                    <td className="py-3 font-semibold text-slate-900">${(79 + i * 12).toFixed(2)}</td>
+                    <td className="py-3">
+                      <span className="px-2 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700">Paid</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="card-modern p-6">
+          <h3 className="text-xl font-bold text-slate-900 mb-4">Top Items</h3>
+          <div className="space-y-4">
+            {[
+              { name: "Mediterranean Cookbook", sales: 432 },
+              { name: "Vegan Delight", sales: 321 },
+              { name: "Dessert Mastery", sales: 298 },
+              { name: "Quick Recipes", sales: 243 },
+            ].map((item) => (
+              <div key={item.name} className="flex items-center justify-between">
+                <span className="text-slate-700">{item.name}</span>
+                <span className="text-slate-900 font-semibold">{item.sales}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
