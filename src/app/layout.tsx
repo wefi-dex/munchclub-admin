@@ -24,7 +24,7 @@ export default function RootLayout({
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header />
             <main className="flex-1 overflow-x-hidden overflow-y-auto p-8 animate-fade-in">
-              <div className="max-w-7xl mx-auto">
+              <div className="max-w-9xl mx-auto">
                 {children}
               </div>
             </main>

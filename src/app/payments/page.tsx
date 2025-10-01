@@ -1,59 +1,88 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, Eye, CreditCard, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
+import { Search, Filter, Eye, CreditCard, CheckCircle, XCircle, Clock, DollarSign, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Payment } from '@/types'
+import { apiClient } from '@/lib/api'
 
 export default function PaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
+    const [refreshing, setRefreshing] = useState(false)
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalCount, setTotalCount] = useState(0)
+    
+    // Stats state
+    const [stats, setStats] = useState({
+        totalPayments: 0,
+        successfulPayments: 0,
+        pendingPayments: 0,
+        failedPayments: 0,
+        totalAmount: 0
+    })
+
+    const fetchPayments = async (page: number = currentPage, limit: number = pageSize, isRefresh = false) => {
+        try {
+            if (isRefresh) {
+                setRefreshing(true)
+            } else {
+                setLoading(true)
+            }
+            const response = await apiClient.getPayments(page, limit)
+            setPayments(response.payments || [])
+            setTotalPages(response.pagination?.totalPages || 1)
+            setTotalCount(response.pagination?.totalCount || 0)
+            setCurrentPage(response.pagination?.currentPage || 1)
+            setStats(response.stats || {
+                totalPayments: 0,
+                successfulPayments: 0,
+                pendingPayments: 0,
+                failedPayments: 0,
+                totalAmount: 0
+            })
+        } catch (error) {
+            console.error('Failed to fetch payments:', error)
+            setPayments([])
+        } finally {
+            setLoading(false)
+            setRefreshing(false)
+        }
+    }
 
     useEffect(() => {
-        // Simulate API call
-        setTimeout(() => {
-            setPayments([
-                {
-                    id: '1',
-                    orderId: '1001',
-                    amount: 29.99,
-                    currency: 'USD',
-                    status: 'completed',
-                    method: 'card',
-                    transactionId: 'txn_123456789',
-                    createdAt: '2024-01-20T10:30:00Z',
-                    processedAt: '2024-01-20T10:31:00Z'
-                },
-                {
-                    id: '2',
-                    orderId: '1002',
-                    amount: 39.98,
-                    currency: 'USD',
-                    status: 'pending',
-                    method: 'paypal',
-                    transactionId: 'pp_987654321',
-                    createdAt: '2024-01-21T14:20:00Z'
-                },
-                {
-                    id: '3',
-                    orderId: '1003',
-                    amount: 19.99,
-                    currency: 'USD',
-                    status: 'failed',
-                    method: 'card',
-                    transactionId: 'txn_failed_123',
-                    createdAt: '2024-01-22T09:15:00Z'
-                }
-            ])
-            setLoading(false)
-        }, 1000)
-    }, [])
+        fetchPayments()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Pagination handlers
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage)
+            fetchPayments(newPage, pageSize)
+        }
+    }
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPageSize(newSize)
+        setCurrentPage(1)
+        fetchPayments(1, newSize)
+    }
+
+    const handleRefresh = () => {
+        fetchPayments(currentPage, pageSize, true)
+    }
 
     const filteredPayments = payments.filter(payment => {
         const matchesSearch = payment.id.includes(searchTerm) ||
-            payment.orderId.includes(searchTerm) ||
-            payment.transactionId?.includes(searchTerm)
+            payment.order.id.includes(searchTerm) ||
+            payment.stripePaymentId.includes(searchTerm) ||
+            payment.order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            payment.order.customer.email.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesStatus = statusFilter === 'all' || payment.status === statusFilter
         return matchesSearch && matchesStatus
     })
@@ -78,15 +107,6 @@ export default function PaymentsPage() {
         }
     }
 
-    const getMethodIcon = (method: string) => {
-        switch (method) {
-            case 'card': return <CreditCard className="w-4 h-4" />
-            case 'paypal': return <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            case 'bank_transfer': return <div className="w-4 h-4 bg-green-500 rounded"></div>
-            default: return <CreditCard className="w-4 h-4" />
-        }
-    }
-
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -101,6 +121,73 @@ export default function PaymentsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
                     <p className="text-gray-600">Monitor payment transactions and processing</p>
+                </div>
+                <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
+            </div>
+
+            {/* Payment Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <CreditCard className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600">Total Payments</p>
+                            <p className="text-2xl font-bold text-gray-900">{stats.totalPayments}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600">Successful</p>
+                            <p className="text-2xl font-bold text-gray-900">{stats.successfulPayments}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                            <Clock className="w-6 h-6 text-yellow-600" />
+                        </div>
+                        <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600">Pending</p>
+                            <p className="text-2xl font-bold text-gray-900">{stats.pendingPayments}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                            <XCircle className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600">Failed</p>
+                            <p className="text-2xl font-bold text-gray-900">{stats.failedPayments}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                            <DollarSign className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div className="ml-4">
+                            <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                            <p className="text-2xl font-bold text-gray-900">${stats.totalAmount.toFixed(2)}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -148,10 +235,10 @@ export default function PaymentsPage() {
                                     Order ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Amount
+                                    Customer
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Method
+                                    Amount
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
@@ -174,19 +261,15 @@ export default function PaymentsPage() {
                                         <div className="text-sm font-medium text-gray-900">#{payment.id}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">#{payment.orderId}</div>
+                                        <div className="text-sm text-gray-900">#{payment.order.id}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm font-medium text-gray-900">{payment.order.customer.name}</div>
+                                        <div className="text-sm text-gray-500">{payment.order.customer.email}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">
-                                            ${payment.amount.toFixed(2)} {payment.currency}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            {getMethodIcon(payment.method)}
-                                            <span className="ml-2 text-sm text-gray-900 capitalize">
-                                                {payment.method.replace('_', ' ')}
-                                            </span>
+                                            ${payment.amount.toFixed(2)}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -197,7 +280,7 @@ export default function PaymentsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-500 font-mono">
-                                            {payment.transactionId || 'N/A'}
+                                            {payment.stripePaymentId}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -214,6 +297,83 @@ export default function PaymentsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalCount > 0 && (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                        {/* Page Size Selector */}
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">Show:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                            <span className="text-sm text-gray-600">per page</span>
+                        </div>
+
+                        {/* Pagination Info */}
+                        <div className="text-sm text-gray-600">
+                            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} payments
+                        </div>
+
+                        {/* Pagination Navigation */}
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+
+                            {/* Page Numbers */}
+                            <div className="flex items-center space-x-1">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => handlePageChange(pageNum)}
+                                            className={`px-3 py-1 rounded-md text-sm ${
+                                                currentPage === pageNum
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'border border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -1,5 +1,35 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
+interface ApiResponse<T> {
+    data?: T
+    pagination?: {
+        totalCount: number
+        totalPages: number
+        currentPage: number
+    }
+    stats?: Record<string, number>
+}
+
+interface UsersResponse extends ApiResponse<unknown[]> {
+    users?: unknown[]
+}
+
+interface OrdersResponse extends ApiResponse<unknown[]> {
+    orders?: unknown[]
+}
+
+interface BooksResponse extends ApiResponse<unknown[]> {
+    books?: unknown[]
+}
+
+interface RecipesResponse extends ApiResponse<unknown[]> {
+    recipes?: unknown[]
+}
+
+interface PaymentsResponse extends ApiResponse<unknown[]> {
+    payments?: unknown[]
+}
+
 class ApiClient {
     private baseUrl: string
 
@@ -30,28 +60,32 @@ class ApiClient {
 
             return await response.json()
         } catch (error) {
+            if (error instanceof TypeError && error.message === 'Failed to fetch') {
+                console.error(`API request failed: Unable to connect to ${url}. Make sure the backend server is running.`)
+                throw new Error(`Unable to connect to backend API at ${url}. Please ensure the server is running on port 3001.`)
+            }
             console.error('API request failed:', error)
             throw error
         }
     }
 
     // Users API
-    async getUsers(): Promise<any[]> {
-        return this.request('/users')
+    async getUsers(page: number = 1, limit: number = 10): Promise<UsersResponse> {
+        return this.request(`/admin/users?page=${page}&limit=${limit}`)
     }
 
-    async getUser(id: string): Promise<any> {
+    async getUser(id: string): Promise<unknown> {
         return this.request(`/users/${id}`)
     }
 
-    async createUser(user: any): Promise<any> {
+    async createUser(user: Record<string, unknown>): Promise<unknown> {
         return this.request('/users', {
             method: 'POST',
             body: JSON.stringify(user),
         })
     }
 
-    async updateUser(id: string, user: any): Promise<any> {
+    async updateUser(id: string, user: Record<string, unknown>): Promise<unknown> {
         return this.request(`/users/${id}`, {
             method: 'PUT',
             body: JSON.stringify(user),
@@ -65,15 +99,15 @@ class ApiClient {
     }
 
     // Orders API
-    async getOrders(): Promise<any[]> {
-        return this.request('/orders')
+    async getOrders(page: number = 1, limit: number = 10): Promise<OrdersResponse> {
+        return this.request(`/admin/orders?page=${page}&limit=${limit}`)
     }
 
-    async getOrder(id: string): Promise<any> {
+    async getOrder(id: string): Promise<unknown> {
         return this.request(`/orders/${id}`)
     }
 
-    async updateOrderStatus(id: string, status: string): Promise<any> {
+    async updateOrderStatus(id: string, status: string): Promise<unknown> {
         return this.request(`/orders/${id}/status`, {
             method: 'PATCH',
             body: JSON.stringify({ status }),
@@ -81,22 +115,22 @@ class ApiClient {
     }
 
     // Books API
-    async getBooks(): Promise<any[]> {
-        return this.request('/books')
+    async getBooks(): Promise<BooksResponse> {
+        return this.request('/admin/books')
     }
 
-    async getBook(id: string): Promise<any> {
+    async getBook(id: string): Promise<unknown> {
         return this.request(`/books/${id}`)
     }
 
-    async createBook(book: any): Promise<any> {
+    async createBook(book: Record<string, unknown>): Promise<unknown> {
         return this.request('/books', {
             method: 'POST',
             body: JSON.stringify(book),
         })
     }
 
-    async updateBook(id: string, book: any): Promise<any> {
+    async updateBook(id: string, book: Record<string, unknown>): Promise<unknown> {
         return this.request(`/books/${id}`, {
             method: 'PUT',
             body: JSON.stringify(book),
@@ -110,22 +144,22 @@ class ApiClient {
     }
 
     // Recipes API
-    async getRecipes(): Promise<any[]> {
-        return this.request('/recipes')
+    async getRecipes(page: number = 1, limit: number = 10): Promise<RecipesResponse> {
+        return this.request(`/admin/recipes?page=${page}&limit=${limit}`)
     }
 
-    async getRecipe(id: string): Promise<any> {
+    async getRecipe(id: string): Promise<unknown> {
         return this.request(`/recipes/${id}`)
     }
 
-    async createRecipe(recipe: any): Promise<any> {
+    async createRecipe(recipe: Record<string, unknown>): Promise<unknown> {
         return this.request('/recipes', {
             method: 'POST',
             body: JSON.stringify(recipe),
         })
     }
 
-    async updateRecipe(id: string, recipe: any): Promise<any> {
+    async updateRecipe(id: string, recipe: Record<string, unknown>): Promise<unknown> {
         return this.request(`/recipes/${id}`, {
             method: 'PUT',
             body: JSON.stringify(recipe),
@@ -139,16 +173,16 @@ class ApiClient {
     }
 
     // Payments API
-    async getPayments(): Promise<any[]> {
-        return this.request('/payments')
+    async getPayments(page: number = 1, limit: number = 10): Promise<PaymentsResponse> {
+        return this.request(`/admin/payments?page=${page}&limit=${limit}`)
     }
 
-    async getPayment(id: string): Promise<any> {
+    async getPayment(id: string): Promise<unknown> {
         return this.request(`/payments/${id}`)
     }
 
     // Dashboard API
-    async getDashboardStats(): Promise<any> {
+    async getDashboardStats(): Promise<unknown> {
         return this.request('/dashboard/stats')
     }
 }
