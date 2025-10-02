@@ -360,16 +360,14 @@ export default function BooksPage() {
                                     </div>
                                     <div className="aspect-[3/4] rounded-t-lg overflow-hidden">
                                         <Image
-                                            src={(() => {
-                                                const imageUrl = book.image && book.image.trim() ? book.image : getDefaultBookImage(book.id)
-                                                // Debug logging
-                                                console.log('Book image URL:', imageUrl, 'Book ID:', book.id)
-                                                // Simple validation - check if it's a valid URL or relative path
-                                                if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('/') || imageUrl.startsWith('./'))) {
-                                                    return imageUrl
-                                                }
-                                                return getDefaultBookImage(book.id)
-                                            })()}
+                                 src={(() => {
+                                     const imageUrl = book.image && book.image.trim() ? book.image : getDefaultBookImage(book.id)
+                                     // Simple validation - check if it's a valid URL or relative path
+                                     if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('/') || imageUrl.startsWith('./'))) {
+                                         return imageUrl
+                                     }
+                                     return getDefaultBookImage(book.id)
+                                 })()}
                                             alt={book.title || 'Book cover'}
                                             width={300}
                                             height={400}
