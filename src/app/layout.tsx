@@ -4,6 +4,7 @@ import './globals.css'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { SuppressHydrationWarning } from '@/components/SuppressHydrationWarning'
+import { PreventExtensionModification } from '@/components/PreventExtensionModification'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,10 +19,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="h-full">
-      <body className={`${inter.className} h-full antialiased`}>
+    <html lang="en" className="h-full overflow-hidden">
+      <body className={`${inter.className} h-full antialiased overflow-hidden`} suppressHydrationWarning>
         <SuppressHydrationWarning />
-        <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <PreventExtensionModification />
+        <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" suppressHydrationWarning>
           <Sidebar />
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header />

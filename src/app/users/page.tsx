@@ -18,46 +18,43 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   
-  // Stats state
-  const [stats, setStats] = useState({
+  // Default stats object
+  const defaultStats = {
     totalUsers: 0,
     usersWithOrders: 0,
     bookCreators: 0,
     recipeCreators: 0
-  })
+  }
+
+  // Stats state
+  const [stats, setStats] = useState(defaultStats)
 
   const fetchUsers = async (page: number = currentPage, limit: number = pageSize, isRefresh = false) => {
-    setUsers([])
-    setLoading(false)
-    // Set default stats when API fails
-    setStats({
-      totalUsers: 0,
-      usersWithOrders: 0,
-      bookCreators: 0,
-      recipeCreators: 0
-    })
-    return
     try {
+      // Set loading state
       if (isRefresh) {
         setRefreshing(true)
       } else {
         setLoading(true)
       }
+
+      // Fetch users data
       const response = await apiClient.getUsers(page, limit)
-      setUsers(response.users || [])
+      
+      // Update state with response data
+      setUsers((response.users as User[]) || [])
       setTotalPages(response.pagination?.totalPages || 1)
       setTotalCount(response.pagination?.totalCount || 0)
       setCurrentPage(response.pagination?.currentPage || 1)
-      setStats(response.stats || {
-        totalUsers: 0,
-        usersWithOrders: 0,
-        bookCreators: 0,
-        recipeCreators: 0
-      })
+      
+      // Set stats with fallback defaults
+      setStats((response.stats as typeof defaultStats) || defaultStats)
+      
     } catch (error) {
       console.error('Failed to fetch users:', error)
       setUsers([])
     } finally {
+      // Reset loading states
       setLoading(false)
       setRefreshing(false)
     }
@@ -85,11 +82,15 @@ export default function UsersPage() {
     fetchUsers(currentPage, pageSize, true)
   }
 
+  // Filter users based on search term and status
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = user.name.toLowerCase().includes(searchLower) ||
+                         user.email.toLowerCase().includes(searchLower)
+    
     // For now, we'll consider all users as 'active' since we don't have status in the schema
     const matchesStatus = statusFilter === 'all' || statusFilter === 'active'
+    
     return matchesSearch && matchesStatus
   })
 

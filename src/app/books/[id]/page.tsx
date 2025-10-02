@@ -41,17 +41,26 @@ export default function BookDetailPage() {
     const fetchBookDetails = async () => {
         try {
             setLoading(true)
+            
+            // Fetch book and recipes data in parallel
             const [bookResponse, recipesResponse] = await Promise.all([
                 apiClient.getBook(id as string),
-                apiClient.getRecipes(1, 100) // Get all recipes for this book
+                apiClient.getRecipes(1, 100)
             ])
             
-            setBook((bookResponse as any).book || bookResponse)
-            // Filter recipes for this book
-            const bookRecipes = (recipesResponse as any).recipes?.filter((recipe: Recipe) => 
+            // Extract book data (handle both wrapped and direct responses)
+            const bookData: Book = 'book' in (bookResponse as { book?: Book } | Book) ? 
+                (bookResponse as { book?: Book }).book || bookResponse as Book : 
+                bookResponse as Book
+            setBook(bookData)
+            
+            // Filter recipes for this specific book
+            const allRecipes = (recipesResponse as { recipes?: Recipe[] }).recipes || []
+            const bookRecipes = allRecipes.filter((recipe: Recipe) => 
                 recipe.book?.id === id
-            ) || []
+            )
             setRecipes(bookRecipes)
+            
         } catch (error) {
             console.error('Failed to fetch book details:', error)
         } finally {

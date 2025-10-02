@@ -67,13 +67,20 @@
     @apply border-border;
   }
   
-  body {
+  html, body {
     @apply bg-slate-50 text-slate-900 antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    height: 100%;
+    overflow: hidden;
   }
   
   html {
     scroll-behavior: smooth;
+  }
+  
+  #__next {
+    height: 100%;
+    overflow: hidden;
   }
 }
 
@@ -150,6 +157,25 @@
   
   .animate-bounce-gentle {
     animation: bounceGentle 2s infinite;
+  }
+  
+  /* Targeted browser extension neutralization - only reset problematic styles */
+  [class*="gb-"],
+  [class*="grammarly"] {
+    /* Only reset styles that cause visual issues */
+    filter: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  
+  /* Minimal protection for Lucide icons - only reset extension-added styles */
+  svg[class*="gb-"],
+  svg[class*="grammarly"] {
+    filter: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 }
 

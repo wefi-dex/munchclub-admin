@@ -38,18 +38,6 @@ export default function BooksPage() {
     })
 
     const fetchBooks = async (isRefresh = false) => {
-
-        setBooks([])
-        setLoading(false)
-        // Set default stats when API fails
-        setStats({
-            totalBooks: 0,
-            totalRecipes: 0,
-            totalOrders: 0,
-            premiumBooks: 0
-        })
-        return
-        
         try {
             if (isRefresh) {
                 setRefreshing(true)
@@ -346,11 +334,11 @@ export default function BooksPage() {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                             {filteredAndSortedBooks.map((book) => (
                                 <div key={book.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
                                     {/* Selection Checkbox */}
-                                    <div className="p-3 border-b border-gray-100">
+                                    <div className="p-2 border-b border-gray-100">
                                         <input
                                             type="checkbox"
                                             checked={selectedBooks.includes(book.id)}
@@ -358,63 +346,55 @@ export default function BooksPage() {
                                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                         />
                                     </div>
-                                    <div className="aspect-[3/4] rounded-t-lg overflow-hidden">
+                                    <div className="aspect-[2/3] rounded-t-lg overflow-hidden">
                                         <Image
-                                 src={(() => {
-                                     const imageUrl = book.image && book.image.trim() ? book.image : getDefaultBookImage(book.id)
-                                     // Simple validation - check if it's a valid URL or relative path
-                                     if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('/') || imageUrl.startsWith('./'))) {
-                                         return imageUrl
-                                     }
-                                     return getDefaultBookImage(book.id)
-                                 })()}
+                                            src={getDefaultBookImage(book.id)}
                                             alt={book.title || 'Book cover'}
-                                            width={300}
-                                            height={400}
+                                            width={120}
+                                            height={180}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
-                                                // Fallback to default image if the original image fails to load
                                                 const target = e.target as HTMLImageElement
                                                 target.src = getDefaultBookImage(book.id)
                                             }}
                                         />
                                     </div>
-                                    <div className="p-4">
-                                        <h3 className="font-semibold text-gray-900 truncate">{book.title}</h3>
-                                        <p className="text-sm text-gray-600 truncate">By {book.author.name}</p>
+                                    <div className="p-3">
+                                        <h3 className="font-medium text-gray-900 truncate text-sm">{book.title}</h3>
+                                        <p className="text-xs text-gray-600 truncate">By {book.author.name}</p>
                                         {book.chefName && (
-                                            <p className="text-sm text-gray-500 truncate">Chef: {book.chefName}</p>
+                                            <p className="text-xs text-gray-500 truncate">Chef: {book.chefName}</p>
                                         )}
                                         <div className="mt-2 flex items-center justify-between">
-                                            <span className="text-sm text-gray-500">{book.type}</span>
-                                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                            <span className="text-xs text-gray-500">{book.type}</span>
+                                            <span className="px-1.5 py-0.5 text-xs rounded-full bg-green-100 text-green-800">
                                                 Active
                                             </span>
                                         </div>
-                                        <div className="mt-2 text-sm text-gray-500">
+                                        <div className="mt-2 text-xs text-gray-500">
                                             <p>Recipes: {book.recipeCount}</p>
                                             <p>Orders: {book.orderCount}</p>
                                         </div>
-                                        <div className="mt-4 flex space-x-2">
+                                        <div className="mt-3 flex space-x-1">
                                             <button
                                                 onClick={() => window.location.href = `/books/${book.id}`}
-                                                className="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200 flex items-center justify-center"
+                                                className="flex-1 bg-blue-100 text-blue-700 px-2 py-1.5 rounded text-xs hover:bg-blue-200 flex items-center justify-center"
                                             >
-                                                <Eye className="w-4 h-4 mr-1" />
+                                                <Eye className="w-3 h-3 mr-1" />
                                                 View
                                             </button>
                                             <button
                                                 onClick={() => window.location.href = `/books/${book.id}`}
-                                                className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 flex items-center justify-center"
+                                                className="flex-1 bg-gray-100 text-gray-700 px-2 py-1.5 rounded text-xs hover:bg-gray-200 flex items-center justify-center"
                                             >
-                                                <Edit className="w-4 h-4 mr-1" />
+                                                <Edit className="w-3 h-3 mr-1" />
                                                 Edit
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteBook(book.id)}
-                                                className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm hover:bg-red-200"
+                                                className="bg-red-100 text-red-700 px-2 py-1.5 rounded text-xs hover:bg-red-200"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3 h-3" />
                                             </button>
                                         </div>
                                     </div>

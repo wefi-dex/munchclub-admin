@@ -18,38 +18,44 @@ export default function PaymentsPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [totalCount, setTotalCount] = useState(0)
     
-    // Stats state
-    const [stats, setStats] = useState({
+    // Default stats object
+    const defaultStats = {
         totalPayments: 0,
         successfulPayments: 0,
         pendingPayments: 0,
         failedPayments: 0,
         totalAmount: 0
-    })
+    }
+
+    // Stats state
+    const [stats, setStats] = useState(defaultStats)
 
     const fetchPayments = async (page: number = currentPage, limit: number = pageSize, isRefresh = false) => {
         try {
+            // Set loading state
             if (isRefresh) {
                 setRefreshing(true)
             } else {
                 setLoading(true)
             }
+
+            // Fetch payments data
             const response = await apiClient.getPayments(page, limit)
-            setPayments(response.payments || [])
+            
+            // Update state with response data
+            setPayments((response.payments as Payment[]) || [])
             setTotalPages(response.pagination?.totalPages || 1)
             setTotalCount(response.pagination?.totalCount || 0)
             setCurrentPage(response.pagination?.currentPage || 1)
-            setStats(response.stats || {
-                totalPayments: 0,
-                successfulPayments: 0,
-                pendingPayments: 0,
-                failedPayments: 0,
-                totalAmount: 0
-            })
+            
+            // Set stats with fallback defaults
+            setStats((response.stats as typeof defaultStats) || defaultStats)
+            
         } catch (error) {
             console.error('Failed to fetch payments:', error)
             setPayments([])
         } finally {
+            // Reset loading states
             setLoading(false)
             setRefreshing(false)
         }

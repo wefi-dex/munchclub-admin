@@ -18,37 +18,43 @@ export default function OrdersPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [totalCount, setTotalCount] = useState(0)
     
-    // Stats state
-    const [stats, setStats] = useState({
+    // Default stats object
+    const defaultStats = {
         totalOrders: 0,
         pendingOrders: 0,
         deliveredOrders: 0,
         shippedOrders: 0
-    })
+    }
+
+    // Stats state
+    const [stats, setStats] = useState(defaultStats)
 
     const fetchOrders = async (page: number = currentPage, limit: number = pageSize, isRefresh = false) => {
         try {
+            // Set loading state
             if (isRefresh) {
                 setRefreshing(true)
             } else {
                 setLoading(true)
             }
+
+            // Fetch orders data
             const response = await apiClient.getOrders(page, limit)
-            setOrders(response.orders || [])
+            
+            // Update state with response data
+            setOrders((response.orders as Order[]) || [])
             setTotalPages(response.pagination?.totalPages || 1)
             setTotalCount(response.pagination?.totalCount || 0)
             setCurrentPage(response.pagination?.currentPage || 1)
-            setStats(response.stats || {
-                totalOrders: 0,
-                pendingOrders: 0,
-                deliveredOrders: 0,
-                shippedOrders: 0
-            })
+            
+            // Set stats with fallback defaults
+            setStats((response.stats as typeof defaultStats) || defaultStats)
+            
         } catch (error) {
             console.error('Failed to fetch orders:', error)
-            // Keep empty array on error
             setOrders([])
         } finally {
+            // Reset loading states
             setLoading(false)
             setRefreshing(false)
         }
@@ -76,11 +82,15 @@ export default function OrdersPage() {
         fetchOrders(currentPage, pageSize, true)
     }
 
+    // Filter orders based on search term and status
     const filteredOrders = orders.filter(order => {
+        const searchLower = searchTerm.toLowerCase()
         const matchesSearch = order.id.includes(searchTerm) ||
-            order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
+            order.userName.toLowerCase().includes(searchLower) ||
+            order.userEmail.toLowerCase().includes(searchLower)
+        
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter
+        
         return matchesSearch && matchesStatus
     })
 
