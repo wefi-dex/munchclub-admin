@@ -185,7 +185,7 @@ export default function PaymentsPage() {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                            <p className="text-2xl font-bold text-gray-900">${stats.totalAmount.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-gray-900">${(stats.totalAmount || 0).toFixed(2)}</p>
                         </div>
                     </div>
                 </div>
@@ -269,7 +269,7 @@ export default function PaymentsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">
-                                            ${payment.amount.toFixed(2)}
+                                            ${(payment.amount || 0).toFixed(2)}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">

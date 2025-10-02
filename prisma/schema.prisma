@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  image          String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  books          Book[]
+  shippingAddress ShippingAddress[]
+  Order           Order[]
+  resetToken      String?
+  resetTokenExpiry DateTime?
+  favorites       String[]
+  communications Communication[]
+  recipes     Recipe[]  
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Recipe {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  image       String?
+  feeds       String?
+  mealType    String?
+  cookingTime String?
+  sortOrder   Int?
+  ingredients String[]
+  dietTypes   String[]
+  description String?
+  instruction String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isShared    Boolean  @default(false)
+  book        Book?    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookId      String?  @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String   @db.ObjectId
+  isCopied    Boolean  @default(false)
+  copiedFromUserId String? @db.ObjectId
+  originalRecipeId String? @db.ObjectId
+}
+
+model Book {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  dedication  String?
+  dedicationImage String?
+  coverColor String?
+  createdAt   DateTime     @default(now())
+  recipes     Recipe[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String       @db.ObjectId
+  image       String?
+  BasketItem  BasketItem[]
+  chefName    String?
+  type        String       @default("Layflat")
+}
+
+model Basket {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String       @unique @db.ObjectId
+  items     BasketItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime?     @updatedAt
+}
+
+model TypePrice {
+  id    String       @id @default(auto()) @map("_id") @db.ObjectId
+  type  String       @unique
+  price Float
+  items BasketItem[]
+}
+
+model BasketItem {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  bookId          String            @db.ObjectId
+  book            Book              @relation(fields: [bookId], references: [id])
+  quantity        Int               @default(1)
+  basket          Basket            @relation(fields: [basketId], references: [id])
+  basketId        String            @db.ObjectId
+  type            String            @default("Layflat")
+  typePrice       TypePrice         @relation(fields: [type], references: [type])
+  shippingAddress ShippingAddress[]
+  Order           Order?            @relation(fields: [orderId], references: [id])
+  orderId         String?           @db.ObjectId
+  coverUrl        String?
+  contentUrl      String?
+}
+
+model ShippingAddress {
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String?     @db.ObjectId
+  user           User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  basketItemId   String?     @db.ObjectId
+  basketItem     BasketItem? @relation(fields: [basketItemId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  addressLine1   String
+  addressLine2   String?
+  addressLine3   String?
+  town           String
+  county         String
+  postCode       String
+  country        String
+  isoCountryCode String
+  reference      String      @default(uuid())
+  createdAt      DateTime    @default(now())
+  OrderShipping  OrderShipping[]
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  RECEIVED
+  ACCEPTED
+  PRINTED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  ERROR
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String       @db.ObjectId
+  user              User         @relation(fields: [userId], references: [id])
+  basketItems       BasketItem[]
+  isMultipleAddress Boolean
+  payment           Payment?    @relation
+  paymentId         String?     @db.ObjectId
+  orderStatus       OrderStatus 
+  purchasedBooks    Json?
+  createdAt         DateTime     @default(now())
+  printerOrderIds   String[]
+  messages          Json[]
+  orderShippings    OrderShipping[]
+  statusHistory     OrderStatusHistory[] // New relation
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  order       Order       @relation(fields: [orderId], references: [id])
+  orderId     String      @db.ObjectId
+  status      OrderStatus
+  timestamp   DateTime    @default(now())
+  message     Json?
+}
+
+model Payment {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  stripePaymentId String
+  amount          Float
+  paymentStatus   PaymentStatus
+  createdAt       DateTime      @default(now())
+  order           Order         @relation(fields: [orderId], references: [id])
+  orderId         String        @db.ObjectId
+
+  @@unique([orderId])
+}
+
+model OrderShipping {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  order            Order           @relation(fields: [orderId], references: [id])
+  orderId          String          @db.ObjectId
+  printerOrderId   String          @unique  
+  shippingAddress  ShippingAddress @relation(fields: [shippingAddressId], references: [id])
+  shippingAddressId String         @db.ObjectId
+}
+
+model Communication {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   
+  subject   String?
+  content   String
+  status    String   
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
