@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // First, let's get all books without the user relation to avoid the null user issue
     const books = await prisma.book.findMany({
