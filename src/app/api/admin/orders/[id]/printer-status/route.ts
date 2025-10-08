@@ -1,12 +1,174 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Types
+interface PrinterStatusData {
+  printerOrderId: string
+  status: string
+  trackingNumber?: string
+  estimatedDelivery?: string
+  error?: string
+}
+
+interface PrinterApiResponse {
+  orderStatus?: {
+    status: string
+    trackingNumber?: string
+    estimatedDelivery?: string
+  }
+}
+
+interface PrinterStatusResponse {
+  success: boolean
+  printerStatuses: PrinterStatusData[]
+  latestStatus: string
+  message?: string
+}
+
+// Constants
+const PRINTER_API_TIMEOUT = 10000 // 10 seconds
+const MAX_RETRIES = 2
+
+// Helper functions
+async function fetchPrinterStatus(printerOrderId: string): Promise<PrinterStatusData> {
+  const url = `${process.env.NEXT_PUBLIC_MAIN_APP_URL}/api/printer/checkOrderStatus?printerOrderId=${printerOrderId}`
+  
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), PRINTER_API_TIMEOUT)
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const statusData: PrinterApiResponse = await response.json()
+    
+    return {
+      printerOrderId,
+      status: statusData.orderStatus?.status || 'unknown',
+      trackingNumber: statusData.orderStatus?.trackingNumber,
+      estimatedDelivery: statusData.orderStatus?.estimatedDelivery
+    }
+  } catch (error) {
+    console.error(`Error checking status for printer order ${printerOrderId}:`, error)
+    
+    return {
+      printerOrderId,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+async function checkAllPrinterStatuses(printerOrderIds: string[]): Promise<PrinterStatusData[]> {
+  // Process all printer orders in parallel for better performance
+  const statusPromises = printerOrderIds.map(printerOrderId => 
+    fetchPrinterStatus(printerOrderId)
+  )
+  
+  return Promise.all(statusPromises)
+}
+
+function determineLatestStatus(printerStatuses: PrinterStatusData[]): string {
+  if (!printerStatuses.length) {
+    return 'unknown'
+  }
+
+  // Status priority mapping (higher number = higher priority)
+  const STATUS_PRIORITY: Record<string, number> = {
+    'completed': 5,
+    'delivered': 5,
+    'shipped': 4,
+    'processing': 3,
+    'pending': 2,
+    'error': 1,
+    'unknown': 0
+  } as const
+
+  // Filter out error statuses and find the highest priority status
+  const validStatuses = printerStatuses.filter(status => status.status !== 'error')
+  
+  if (validStatuses.length === 0) {
+    return 'error'
+  }
+
+  // Find status with highest priority
+  let highestPriorityStatus = validStatuses[0].status
+  let highestPriority = STATUS_PRIORITY[highestPriorityStatus] || 0
+
+  for (const status of validStatuses) {
+    const priority = STATUS_PRIORITY[status.status] || 0
+    if (priority > highestPriority) {
+      highestPriority = priority
+      highestPriorityStatus = status.status
+    }
+  }
+
+  return highestPriorityStatus
+}
+
+// Map printer status to OrderStatus enum values
+function mapPrinterStatusToOrderStatus(printerStatus: string): string {
+  const statusMap: Record<string, string> = {
+    'completed': 'DELIVERED',
+    'delivered': 'DELIVERED',
+    'shipped': 'SHIPPED',
+    'processing': 'PROCESSING',
+    'pending': 'PENDING',
+    'error': 'ERROR',
+    'unknown': 'PENDING'
+  }
+  
+  return statusMap[printerStatus.toLowerCase()] || 'PENDING'
+}
+
+async function updateOrderStatus(orderId: string, latestStatus: PrinterStatusData): Promise<boolean> {
+  // Skip update for error statuses
+  if (latestStatus.status === 'error') {
+    return false
+  }
+
+  try {
+    const mappedStatus = mapPrinterStatusToOrderStatus(latestStatus.status)
+    
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        orderStatus: mappedStatus as any // Cast to any since we know the mapping is valid
+      }
+    })
+    
+    return true
+  } catch (error) {
+    console.error(`Failed to update order ${orderId} status to ${latestStatus.status}:`, error)
+    return false
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const orderId = params.id
+
+    // Validate order ID format
+    if (!orderId || typeof orderId !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400 }
+      )
+    }
 
     // Get order with printer order IDs
     const order = await prisma.order.findUnique({
@@ -25,72 +187,34 @@ export async function GET(
     }
 
     if (!order.printerOrderIds || order.printerOrderIds.length === 0) {
-      return NextResponse.json({
+      const response: PrinterStatusResponse = {
         success: true,
+        printerStatuses: [],
+        latestStatus: 'no_printer_orders',
         message: 'No printer orders found for this order'
-      })
-    }
-
-    // Check status for each printer order
-    const printerStatuses = []
-    
-    for (const printerOrderId of order.printerOrderIds) {
-      try {
-        // Call the printer status API
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_MAIN_APP_URL}/api/printer/checkOrderStatus?printerOrderId=${printerOrderId}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-
-        if (response.ok) {
-          const statusData = await response.json()
-          printerStatuses.push({
-            printerOrderId,
-            status: statusData.orderStatus?.status || 'unknown',
-            trackingNumber: statusData.orderStatus?.trackingNumber,
-            estimatedDelivery: statusData.orderStatus?.estimatedDelivery
-          })
-        } else {
-          printerStatuses.push({
-            printerOrderId,
-            status: 'error',
-            error: 'Failed to fetch status'
-          })
-        }
-      } catch (error) {
-        console.error(`Error checking status for printer order ${printerOrderId}:`, error)
-        printerStatuses.push({
-          printerOrderId,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
       }
+      return NextResponse.json(response)
     }
+
+    // Check status for all printer orders
+    const printerStatuses = await checkAllPrinterStatuses(order.printerOrderIds)
+    
+    // Determine the latest status based on priority
+    const latestStatusString = determineLatestStatus(printerStatuses)
+    
+    // Find the status data for the latest status
+    const latestStatusData = printerStatuses.find(status => status.status === latestStatusString) || printerStatuses[0]
 
     // Update the order with the latest status
-    const latestStatus = printerStatuses[0] // Use first printer order status
-    if (latestStatus && latestStatus.status !== 'error') {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          printerStatus: latestStatus.status,
-          trackingNumber: latestStatus.trackingNumber || null,
-          estimatedDelivery: latestStatus.estimatedDelivery ? new Date(latestStatus.estimatedDelivery) : null,
-          updatedAt: new Date()
-        }
-      })
-    }
+    await updateOrderStatus(orderId, latestStatusData)
 
-    return NextResponse.json({
+    const response: PrinterStatusResponse = {
       success: true,
       printerStatuses,
-      latestStatus: latestStatus?.status || 'unknown'
-    })
+      latestStatus: latestStatusString
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Error refreshing printer status:', error)
