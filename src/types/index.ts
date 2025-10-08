@@ -30,6 +30,12 @@ export interface Order {
         status: string
         amount: number
     }
+    // Printer integration fields
+    printerOrderIds?: string[]
+    printerStatus?: string
+    trackingNumber?: string
+    estimatedDelivery?: string
+    printerErrorMessage?: string
 }
 
 export interface User {

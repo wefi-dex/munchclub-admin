@@ -72,7 +72,13 @@ export async function GET(request: NextRequest) {
         id: order.payment.id,
         status: order.payment.paymentStatus,
         amount: order.payment.amount
-      } : undefined
+      } : undefined,
+      // Printer integration fields
+      printerOrderIds: order.printerOrderIds || [],
+      printerStatus: order.printerStatus || null,
+      trackingNumber: order.trackingNumber || null,
+      estimatedDelivery: order.estimatedDelivery?.toISOString() || null,
+      printerErrorMessage: order.printerErrorMessage || null
     }))
 
     return NextResponse.json({

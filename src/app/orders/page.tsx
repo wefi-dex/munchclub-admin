@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, Filter, MoreVertical, Eye, Package, Truck, CheckCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Order } from '@/types'
 import { apiClient } from '@/lib/api'
+import PrinterStatus from '@/components/PrinterStatus'
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
@@ -258,6 +259,9 @@ export default function OrdersPage() {
                                     Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Printer Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -305,6 +309,15 @@ export default function OrdersPage() {
                                             {getStatusIcon(order.status)}
                                             <span className="ml-1 capitalize">{order.status}</span>
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <PrinterStatus
+                                            printerOrderIds={order.printerOrderIds || []}
+                                            printerStatus={order.printerStatus}
+                                            trackingNumber={order.trackingNumber}
+                                            estimatedDelivery={order.estimatedDelivery}
+                                            printerErrorMessage={order.printerErrorMessage}
+                                        />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(order.createdAt).toLocaleDateString()}
