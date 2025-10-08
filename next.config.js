@@ -6,7 +6,9 @@ const nextConfig = {
     allowedDevOrigins: [
         '13.53.44.1',
         'localhost',
-        '127.0.0.1'
+        '127.0.0.1',
+        'admin.themunchclub.com',
+        'themunchclub.com'
     ],
 }
 
