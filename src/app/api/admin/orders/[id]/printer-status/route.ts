@@ -27,7 +27,6 @@ interface PrinterStatusResponse {
 
 // Constants
 const PRINTER_API_TIMEOUT = 10000 // 10 seconds
-const MAX_RETRIES = 2
 
 // Helper functions
 async function fetchPrinterStatus(printerOrderId: string): Promise<PrinterStatusData> {
@@ -144,7 +143,7 @@ async function updateOrderStatus(orderId: string, latestStatus: PrinterStatusDat
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        orderStatus: mappedStatus as any // Cast to any since we know the mapping is valid
+        orderStatus: mappedStatus as 'PENDING' | 'PROCESSING' | 'RECEIVED' | 'ACCEPTED' | 'PRINTED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'ERROR'
       }
     })
     

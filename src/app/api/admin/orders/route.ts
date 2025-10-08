@@ -68,13 +68,28 @@ function parsePaginationParams(searchParams: URLSearchParams) {
   return { page, limit, skip }
 }
 
-function transformOrder(order: any): TransformedOrder {
+function transformOrder(order: {
+  id: string
+  userId: string
+  user: { name: string; email: string }
+  basketItems: Array<{
+    id: string
+    bookId: string
+    book: { title: string }
+    quantity: number
+  }>
+  payment?: { id: string; amount: number; paymentStatus: string }
+  orderStatus: string
+  createdAt: Date
+  updatedAt?: Date
+  printerOrderIds: string[]
+}): TransformedOrder {
   return {
     id: order.id,
     userId: order.userId,
     userName: order.user.name,
     userEmail: order.user.email,
-    items: order.basketItems.map((item: any) => ({
+    items: order.basketItems.map((item) => ({
       id: item.id,
       productId: item.bookId,
       productName: item.book.title,

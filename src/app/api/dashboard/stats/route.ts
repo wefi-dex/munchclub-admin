@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const [
       totalUsers,
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       orderCount: book.BasketItem.length
     }))
 
-    const revenueData = Array(12).fill(0).map((_, index) => 
+    const revenueData = Array(12).fill(0).map(() => 
       Math.floor((totalRevenue._sum.amount || 0) / 12) + Math.floor(Math.random() * 1000)
     )
 
