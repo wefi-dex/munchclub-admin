@@ -156,10 +156,10 @@ async function updateOrderStatus(orderId: string, latestStatus: PrinterStatusDat
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id
+    const { id: orderId } = await params
 
     // Validate order ID format
     if (!orderId || typeof orderId !== 'string') {

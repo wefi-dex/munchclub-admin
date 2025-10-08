@@ -62,7 +62,7 @@ export default function Home() {
       // Get recent orders if available
       let recentOrders: { id: string; userName: string; total: number; status: string }[] = []
       if (ordersResponse.status === 'fulfilled') {
-        recentOrders = ordersResponse.value.orders || []
+        recentOrders = (ordersResponse.value.orders as { id: string; userName: string; total: number; status: string }[]) || []
       }
 
       // Calculate revenue from real order data
@@ -71,14 +71,14 @@ export default function Home() {
       
       if (ordersResponse.status === 'fulfilled' && ordersResponse.value.orders) {
         // Calculate real revenue from actual orders
-        const orders = ordersResponse.value.orders
+        const orders = ordersResponse.value.orders as { total?: number }[]
         totalRevenue = orders.reduce((sum: number, order: { total?: number }) => sum + (order.total || 0), 0)
         
         // Try to get more orders for historical data
         try {
           const historicalOrdersResponse = await apiClient.getOrders(1, 100) // Get more orders
           if (historicalOrdersResponse.orders) {
-            const allOrders = historicalOrdersResponse.orders
+            const allOrders = historicalOrdersResponse.orders as { createdAt: string; total?: number }[]
             
             // Group orders by month for the last 12 months
             const monthlyRevenue: { [key: string]: number } = {}
@@ -92,7 +92,7 @@ export default function Home() {
             }
             
             // Sum revenue by month
-            allOrders.forEach((order: { createdAt: string; total?: number }) => {
+            allOrders.forEach((order) => {
               const orderDate = new Date(order.createdAt)
               const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`
               if (monthlyRevenue.hasOwnProperty(monthKey)) {

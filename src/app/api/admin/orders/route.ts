@@ -71,14 +71,14 @@ function parsePaginationParams(searchParams: URLSearchParams) {
 function transformOrder(order: {
   id: string
   userId: string
-  user: { name: string; email: string }
+  user: { name: string; email: string | null }
   basketItems: Array<{
     id: string
     bookId: string
     book: { title: string }
     quantity: number
   }>
-  payment?: { id: string; amount: number; paymentStatus: string }
+  payment: { id: string; amount: number; paymentStatus: string } | null
   orderStatus: string
   createdAt: Date
   updatedAt?: Date
@@ -88,7 +88,7 @@ function transformOrder(order: {
     id: order.id,
     userId: order.userId,
     userName: order.user.name,
-    userEmail: order.user.email,
+    userEmail: order.user.email || '',
     items: order.basketItems.map((item) => ({
       id: item.id,
       productId: item.bookId,

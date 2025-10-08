@@ -66,7 +66,7 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
         setLoading(true)
         try {
             const updatedBook = await apiClient.updateBook(book.id, formData)
-            onSave(updatedBook)
+            onSave(updatedBook as Book)
             onClose()
         } catch (error) {
             console.error('Failed to update book:', error)
