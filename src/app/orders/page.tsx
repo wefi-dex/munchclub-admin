@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Filter, MoreVertical, Eye, Package, Truck, CheckCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Order } from '@/types'
 import { apiClient } from '@/lib/api'
 import PrinterStatus from '@/components/PrinterStatus'
 
 export default function OrdersPage() {
+    const router = useRouter()
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -324,7 +326,11 @@ export default function OrdersPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
+                                            <button 
+                                                onClick={() => router.push(`/orders/${order.id}`)}
+                                                className="text-blue-600 hover:text-blue-900"
+                                                title="View Order Details"
+                                            >
                                                 <Eye className="w-4 h-4" />
                                             </button>
                                             <button className="text-indigo-600 hover:text-indigo-900">

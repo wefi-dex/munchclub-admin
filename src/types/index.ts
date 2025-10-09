@@ -4,14 +4,25 @@ export interface OrderItem {
     productName: string
     quantity: number
     price: number
+    pages?: number
+    recipes?: number
+    type?: string
 }
 
 export interface ShippingAddress {
-    street: string
-    city: string
-    state: string
-    zipCode: string
-    country: string
+    firstName?: string
+    lastName?: string
+    addressLine1?: string
+    addressLine2?: string
+    town?: string
+    county?: string
+    postCode?: string
+    country?: string
+    // Legacy fields for backward compatibility
+    street?: string
+    city?: string
+    state?: string
+    zipCode?: string
 }
 
 export interface Order {
@@ -23,12 +34,13 @@ export interface Order {
     total: number
     status: string
     createdAt: string
-    updatedAt: string
+    updatedAt?: string
     shippingAddress: ShippingAddress
     payment?: {
         id: string
         status: string
         amount: number
+        stripePaymentId?: string
     }
     // Printer integration fields
     printerOrderIds?: string[]
@@ -36,6 +48,12 @@ export interface Order {
     trackingNumber?: string
     estimatedDelivery?: string
     printerErrorMessage?: string
+    // Order status history
+    orderStatusHistory?: Array<{
+        status: string
+        timestamp: string
+        note?: string
+    }>
 }
 
 export interface User {

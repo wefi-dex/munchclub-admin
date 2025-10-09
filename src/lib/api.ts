@@ -104,11 +104,11 @@ class ApiClient {
     }
 
     async getOrder(id: string): Promise<unknown> {
-        return this.request(`/orders/${id}`)
+        return this.request(`/admin/orders/${id}`)
     }
 
     async updateOrderStatus(id: string, status: string): Promise<unknown> {
-        return this.request(`/orders/${id}/status`, {
+        return this.request(`/admin/orders/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status }),
         })
