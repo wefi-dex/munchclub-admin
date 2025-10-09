@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+const API_BASE_URL = '/api'
 
 interface ApiResponse<T> {
     data?: T
@@ -62,7 +62,7 @@ class ApiClient {
         } catch (error) {
             if (error instanceof TypeError && error.message === 'Failed to fetch') {
                 console.error(`API request failed: Unable to connect to ${url}. Make sure the backend server is running.`)
-                throw new Error(`Unable to connect to backend API at ${url}. Please ensure the server is running on port 3001.`)
+                throw new Error(`Unable to connect to backend API at ${url}. Please ensure the server is running on port 3000.`)
             }
             console.error('API request failed:', error)
             throw error
@@ -120,25 +120,25 @@ class ApiClient {
     }
 
     async getBook(id: string): Promise<unknown> {
-        return this.request(`/books/${id}`)
+        return this.request(`/admin/books/${id}`)
     }
 
     async createBook(book: Record<string, unknown>): Promise<unknown> {
-        return this.request('/books', {
+        return this.request('/admin/books', {
             method: 'POST',
             body: JSON.stringify(book),
         })
     }
 
     async updateBook(id: string, book: Record<string, unknown>): Promise<unknown> {
-        return this.request(`/books/${id}`, {
+        return this.request(`/admin/books/${id}`, {
             method: 'PUT',
             body: JSON.stringify(book),
         })
     }
 
     async deleteBook(id: string): Promise<void> {
-        return this.request(`/books/${id}`, {
+        return this.request(`/admin/books/${id}`, {
             method: 'DELETE',
         })
     }
@@ -149,7 +149,20 @@ class ApiClient {
     }
 
     async getRecipe(id: string): Promise<unknown> {
-        return this.request(`/recipes/${id}`)
+        return this.request(`/admin/recipes/${id}`)
+    }
+
+    async updateRecipe(id: string, recipe: Record<string, unknown>): Promise<unknown> {
+        return this.request(`/admin/recipes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(recipe),
+        })
+    }
+
+    async deleteRecipe(id: string): Promise<void> {
+        return this.request(`/admin/recipes/${id}`, {
+            method: 'DELETE',
+        })
     }
 
     async createRecipe(recipe: Record<string, unknown>): Promise<unknown> {

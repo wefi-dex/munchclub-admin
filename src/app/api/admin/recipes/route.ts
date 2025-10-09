@@ -3,10 +3,13 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Starting recipes API request')
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
+
+    console.log('Fetching recipes with params:', { page, limit, skip })
 
     const [recipes, totalCount] = await Promise.all([
       prisma.recipe.findMany({
@@ -34,6 +37,8 @@ export async function GET(request: NextRequest) {
       prisma.recipe.count()
     ])
 
+    console.log('Recipes fetched successfully:', recipes.length)
+
     const transformedRecipes = recipes.map(recipe => ({
       id: recipe.id,
       title: recipe.title,
@@ -49,10 +54,14 @@ export async function GET(request: NextRequest) {
       isCopied: recipe.isCopied,
       createdAt: recipe.createdAt.toISOString(),
       updatedAt: recipe.updatedAt.toISOString(),
-      author: {
+      author: recipe.user ? {
         id: recipe.user.id,
         name: recipe.user.name,
         email: recipe.user.email
+      } : {
+        id: 'unknown',
+        name: 'Unknown User',
+        email: 'unknown@example.com'
       },
       book: recipe.book ? {
         id: recipe.book.id,

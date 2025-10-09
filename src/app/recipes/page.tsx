@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Plus, Filter, Edit, Trash2, Eye, ChefHat, Clock, Users, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Recipe } from '@/types'
 import { apiClient } from '@/lib/api'
@@ -32,9 +33,10 @@ const DIFFICULTY_COLORS = {
 interface RecipeCardProps {
     recipe: Recipe
     getDifficultyColor: (difficulty: string) => string
+    onViewRecipe: (recipeId: string) => void
 }
 
-const RecipeCard = ({ recipe, getDifficultyColor }: RecipeCardProps) => (
+const RecipeCard = ({ recipe, getDifficultyColor, onViewRecipe }: RecipeCardProps) => (
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
         <div className="aspect-video bg-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
             {recipe.image ? (
@@ -90,7 +92,10 @@ const RecipeCard = ({ recipe, getDifficultyColor }: RecipeCardProps) => (
             </div>
 
             <div className="flex space-x-1">
-                <button className="flex-1 bg-blue-100 text-blue-700 px-2 py-1.5 rounded text-xs hover:bg-blue-200 flex items-center justify-center">
+                <button 
+                    onClick={() => onViewRecipe(recipe.id)}
+                    className="flex-1 bg-blue-100 text-blue-700 px-2 py-1.5 rounded text-xs hover:bg-blue-200 flex items-center justify-center"
+                >
                     <Eye className="w-3 h-3 mr-1" />
                     View
                 </button>
@@ -199,6 +204,7 @@ const PaginationControls = ({
 )
 
 export default function RecipesPage() {
+    const router = useRouter()
     const [recipes, setRecipes] = useState<Recipe[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -253,6 +259,10 @@ export default function RecipesPage() {
         setCurrentPage(1)
         fetchRecipes(1, newSize)
     }, [fetchRecipes])
+
+    const handleViewRecipe = (recipeId: string) => {
+        router.push(`/recipes/${recipeId}`)
+    }
 
     const handleRefresh = useCallback(() => {
         fetchRecipes(currentPage, pageSize, true)
@@ -353,6 +363,7 @@ export default function RecipesPage() {
                         key={recipe.id} 
                         recipe={recipe} 
                         getDifficultyColor={getDifficultyColor}
+                        onViewRecipe={handleViewRecipe}
                     />
                 ))}
             </div>

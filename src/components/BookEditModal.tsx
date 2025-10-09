@@ -65,8 +65,14 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
         
         setLoading(true)
         try {
-            const updatedBook = await apiClient.updateBook(book.id, formData)
-            onSave(updatedBook as Book)
+            const response = await apiClient.updateBook(book.id, formData)
+            console.log('Update response:', response)
+            
+            // Extract the book data from the response
+            const updatedBook = (response as { book: Book }).book || response as Book
+            console.log('Extracted book:', updatedBook)
+            
+            onSave(updatedBook)
             onClose()
         } catch (error) {
             console.error('Failed to update book:', error)

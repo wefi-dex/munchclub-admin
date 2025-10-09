@@ -76,6 +76,7 @@ export interface Book {
     coverColor?: string
     chefName?: string
     type?: string
+    dedication?: string
     createdAt: string
     updatedAt: string
     author: {
@@ -85,6 +86,7 @@ export interface Book {
     }
     recipeCount: number
     orderCount: number
+    recipes?: Recipe[]
 }
 
 export interface Recipe {
@@ -98,6 +100,7 @@ export interface Recipe {
     difficulty?: string
     ingredients: string[]
     dietTypes: string[]
+    instructions?: string
     isShared: boolean
     isCopied: boolean
     createdAt: string

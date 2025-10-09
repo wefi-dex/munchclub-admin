@@ -25,7 +25,10 @@ export async function GET(
             title: true,
             image: true,
             mealType: true,
-            cookingTime: true
+            cookingTime: true,
+            feeds: true,
+            isShared: true,
+            createdAt: true
           }
         },
         BasketItem: {
@@ -51,6 +54,7 @@ export async function GET(
       coverColor: book.coverColor,
       chefName: book.chefName,
       type: book.type,
+      dedication: book.dedication,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.createdAt.toISOString(),
       author: {
@@ -66,6 +70,9 @@ export async function GET(
         image: recipe.image,
         mealType: recipe.mealType,
         cookingTime: recipe.cookingTime,
+        feeds: recipe.feeds,
+        isShared: recipe.isShared,
+        createdAt: recipe.createdAt.toISOString(),
         difficulty: 'easy'
       }))
     }
@@ -98,7 +105,8 @@ export async function PUT(
         image: body.image,
         coverColor: body.coverColor,
         chefName: body.chefName,
-        type: body.type
+        type: body.type,
+        dedication: body.dedication
       },
       include: {
         user: {
@@ -107,11 +115,59 @@ export async function PUT(
             name: true,
             email: true
           }
+        },
+        recipes: {
+          select: {
+            id: true,
+            title: true,
+            image: true,
+            mealType: true,
+            cookingTime: true,
+            feeds: true,
+            isShared: true,
+            createdAt: true
+          }
+        },
+        BasketItem: {
+          select: {
+            id: true
+          }
         }
       }
     })
 
-    return NextResponse.json(book)
+    const transformedBook = {
+      id: book.id,
+      title: book.title,
+      description: book.description,
+      image: book.image,
+      coverColor: book.coverColor,
+      chefName: book.chefName,
+      type: book.type,
+      dedication: book.dedication,
+      createdAt: book.createdAt.toISOString(),
+      updatedAt: book.createdAt.toISOString(),
+      author: {
+        id: book.user.id,
+        name: book.user.name,
+        email: book.user.email
+      },
+      recipeCount: book.recipes.length,
+      orderCount: book.BasketItem.length,
+      recipes: book.recipes.map(recipe => ({
+        id: recipe.id,
+        title: recipe.title,
+        image: recipe.image,
+        mealType: recipe.mealType,
+        cookingTime: recipe.cookingTime,
+        feeds: recipe.feeds,
+        isShared: recipe.isShared,
+        createdAt: recipe.createdAt.toISOString(),
+        difficulty: 'easy'
+      }))
+    }
+
+    return NextResponse.json({ book: transformedBook })
   } catch (error) {
     console.error('Error updating book:', error)
     return NextResponse.json(
