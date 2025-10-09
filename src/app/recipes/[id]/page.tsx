@@ -2,21 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Clock, Users, ChefHat, Calendar, Share2, Copy, BookOpen } from 'lucide-react'
+import { ArrowLeft, Trash2, Users, ChefHat, Calendar, Share2, Copy, BookOpen } from 'lucide-react'
 import { Recipe } from '@/types'
 import { apiClient } from '@/lib/api'
 import Image from 'next/image'
-
-function getDefaultImage(recipeId: string) {
-    const defaultImages = [
-        '/assets/images/recipe-default1.jpg',
-        '/assets/images/recipe-default2.jpg',
-        '/assets/images/recipe-default3.jpg'
-    ]
-    if (!recipeId) return defaultImages[0]
-    const index = recipeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % defaultImages.length
-    return defaultImages[index]
-}
 
 function formatDate(dateString: string) {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -33,7 +22,6 @@ export default function RecipeDetailPage() {
     
     const [recipe, setRecipe] = useState<Recipe | null>(null)
     const [loading, setLoading] = useState(true)
-    const [editModalOpen, setEditModalOpen] = useState(false)
 
     useEffect(() => {
         if (id) {
@@ -52,7 +40,7 @@ export default function RecipeDetailPage() {
             let recipeData: Recipe
             if (typeof recipeResponse === 'object' && recipeResponse !== null) {
                 if ('recipe' in recipeResponse && recipeResponse.recipe) {
-                    recipeData = recipeResponse.recipe
+                    recipeData = recipeResponse.recipe as Recipe
                 } else if ('id' in recipeResponse) {
                     recipeData = recipeResponse as Recipe
                 } else {
@@ -154,13 +142,6 @@ export default function RecipeDetailPage() {
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => setEditModalOpen(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                        <Edit className="w-4 h-4" />
-                        <span>Edit Recipe</span>
-                    </button>
                     <button
                         onClick={handleDeleteRecipe}
                         className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"

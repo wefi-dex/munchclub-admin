@@ -172,19 +172,6 @@ class ApiClient {
         })
     }
 
-    async updateRecipe(id: string, recipe: Record<string, unknown>): Promise<unknown> {
-        return this.request(`/recipes/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(recipe),
-        })
-    }
-
-    async deleteRecipe(id: string): Promise<void> {
-        return this.request(`/recipes/${id}`, {
-            method: 'DELETE',
-        })
-    }
-
     // Payments API
     async getPayments(page: number = 1, limit: number = 10): Promise<PaymentsResponse> {
         return this.request(`/admin/payments?page=${page}&limit=${limit}`)

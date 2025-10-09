@@ -2,24 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Eye, BookOpen, ChefHat, Clock, Users, TrendingUp, Calendar, FileText, Palette } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Eye, BookOpen, ChefHat, Users, TrendingUp, FileText } from 'lucide-react'
 import { Book, Recipe } from '@/types'
 import { apiClient } from '@/lib/api'
 import BookEditModal from '@/components/BookEditModal'
-import Image from 'next/image'
-
-// Function to get default book image
-const getDefaultBookImage = (bookId: string | undefined) => {
-    const defaultImages = [
-        '/assets/images/book-default1.jpg',
-        '/assets/images/book-default2.jpg',
-        '/assets/images/book-default3.jpg'
-    ]
-    // Use book ID to consistently select the same default image for the same book
-    if (!bookId) return defaultImages[0]
-    const index = bookId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % defaultImages.length
-    return defaultImages[index]
-}
 
 export default function BookDetailPage() {
     const params = useParams()
@@ -58,7 +44,7 @@ export default function BookDetailPage() {
             let bookData: Book
             if (typeof bookResponse === 'object' && bookResponse !== null) {
                 if ('book' in bookResponse && bookResponse.book) {
-                    bookData = bookResponse.book
+                    bookData = bookResponse.book as Book
                     console.log('Using wrapped book data:', bookData)
                 } else if ('id' in bookResponse) {
                     bookData = bookResponse as Book
@@ -90,7 +76,7 @@ export default function BookDetailPage() {
             setBook(bookData)
             
             // Extract recipes from the book response
-            const bookRecipes = (bookData as any).recipes || []
+            const bookRecipes = (bookData as Book & { recipes?: Recipe[] }).recipes || []
             setRecipes(bookRecipes)
             
         } catch (error) {

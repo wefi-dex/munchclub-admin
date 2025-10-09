@@ -55,15 +55,54 @@ interface OrderDetail {
   }>
 }
 
-function transformOrderDetail(order: any): OrderDetail {
+function transformOrderDetail(order: {
+  id: string
+  userId: string
+  user: { name: string; email: string | null }
+  basketItems: Array<{
+    id: string
+    book: { id: string; title: string; recipes: Array<{ id: string }> } | null
+    typePrice: { price: number } | null
+    type: string
+    quantity: number
+  }>
+  orderShippings: Array<{
+    shippingAddress: {
+      firstName: string
+      lastName: string
+      addressLine1: string
+      addressLine2: string | null
+      town: string
+      county: string
+      postCode: string
+      country: string
+    }
+  }>
+  statusHistory: Array<{
+    status: string
+    timestamp: Date
+    message: unknown
+  }>
+  createdAt: Date
+  orderStatus: string
+  payment: {
+    id: string
+    amount: number
+    paymentStatus: string
+    stripePaymentId?: string
+  } | null
+  printerOrderIds?: string[]
+}): OrderDetail {
   // Get shipping address from orderShippings
   const shippingAddress = order.orderShippings?.[0]?.shippingAddress || {}
   
   // Transform status history
-  const orderStatusHistory = order.statusHistory?.map((history: any) => ({
+  const orderStatusHistory = order.statusHistory?.map((history) => ({
     status: history.status,
     timestamp: history.timestamp.toISOString(),
-    note: history.message?.note || ''
+    note: typeof history.message === 'object' && history.message !== null && 'note' in history.message 
+      ? (history.message as { note: string }).note 
+      : ''
   })) || []
 
   return {
@@ -71,10 +110,10 @@ function transformOrderDetail(order: any): OrderDetail {
     userId: order.userId,
     userName: order.user.name,
     userEmail: order.user.email || '',
-    items: order.basketItems.map((item: any) => ({
+    items: order.basketItems.map((item) => ({
       id: item.id,
-      productId: item.bookId,
-      productName: item.book.title,
+      productId: item.book?.id || '',
+      productName: item.book?.title || 'Unknown Book',
       quantity: item.quantity,
       price: item.typePrice?.price || 0,
       pages: 0, // This would need to be calculated from recipes
@@ -89,7 +128,7 @@ function transformOrderDetail(order: any): OrderDetail {
       firstName: shippingAddress.firstName,
       lastName: shippingAddress.lastName,
       addressLine1: shippingAddress.addressLine1,
-      addressLine2: shippingAddress.addressLine2,
+      addressLine2: shippingAddress.addressLine2 || undefined,
       town: shippingAddress.town,
       county: shippingAddress.county,
       postCode: shippingAddress.postCode,

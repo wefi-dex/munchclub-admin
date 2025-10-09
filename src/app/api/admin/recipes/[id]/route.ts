@@ -105,7 +105,7 @@ export async function PUT(
         cookingTime: body.cookingTime,
         ingredients: body.ingredients,
         dietTypes: body.dietTypes,
-        instructions: body.instructions,
+        instruction: body.instructions,
         isShared: body.isShared
       },
       include: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -12,8 +12,6 @@ import {
   Mail, 
   MapPin, 
   CreditCard,
-  FileText,
-  Calendar,
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
@@ -31,7 +29,7 @@ export default function OrderDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -43,13 +41,13 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [orderId])
 
   useEffect(() => {
     if (orderId) {
       fetchOrder()
     }
-  }, [orderId])
+  }, [orderId, fetchOrder])
 
   const handleStatusUpdate = async (newStatus: string) => {
     try {
