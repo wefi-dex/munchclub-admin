@@ -18,7 +18,9 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
         description: '',
         chefName: '',
         type: 'standard',
-        coverColor: '#2744a4'
+        coverColor: '#2744a4',
+        dedication: '',
+        dedicationImage: ''
     })
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -30,7 +32,9 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
                 description: book.description || '',
                 chefName: book.chefName || '',
                 type: book.type || 'standard',
-                coverColor: book.coverColor || '#2744a4'
+                coverColor: book.coverColor || '#2744a4',
+                dedication: book.dedication || '',
+                dedicationImage: book.dedicationImage || ''
             })
         }
     }, [book, isOpen])
@@ -65,12 +69,9 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
         
         setLoading(true)
         try {
-            const response = await apiClient.updateBook(book.id, formData)
-            console.log('Update response:', response)
-            
+            const response = await apiClient.updateBook(book.id, formData)            
             // Extract the book data from the response
             const updatedBook = (response as { book: Book }).book || response as Book
-            console.log('Extracted book:', updatedBook)
             
             onSave(updatedBook)
             onClose()
@@ -195,6 +196,58 @@ export default function BookEditModal({ book, isOpen, onClose, onSave }: BookEdi
                         <p className="mt-1 text-xs text-gray-500">
                             {formData.chefName.length}/50 characters
                         </p>
+                    </div>
+
+                    {/* Dedication */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Dedication
+                        </label>
+                        <textarea
+                            value={formData.dedication}
+                            onChange={(e) => handleInputChange('dedication', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Enter dedication text"
+                            rows={3}
+                            maxLength={98}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            {formData.dedication.length}/98 characters
+                        </p>
+                    </div>
+
+                    {/* Dedication Image */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Dedication Image
+                        </label>
+                        <div className="flex items-center space-x-4">
+                            {formData.dedicationImage ? (
+                                <div className="flex-shrink-0">
+                                    <img 
+                                        src={formData.dedicationImage} 
+                                        alt="Dedication" 
+                                        className="w-24 h-24 object-cover rounded-lg border border-gray-300"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-24 h-24 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center">
+                                    <span className="text-gray-400 text-xs">No image</span>
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                <input
+                                    type="url"
+                                    value={formData.dedicationImage}
+                                    onChange={(e) => handleInputChange('dedicationImage', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Enter image URL"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Enter a URL for the dedication image
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Book Type */}

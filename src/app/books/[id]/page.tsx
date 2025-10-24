@@ -25,7 +25,6 @@ export default function BookDetailPage() {
 
     // Debug effect to monitor book state changes
     useEffect(() => {
-        console.log('Book state changed:', book)
         if (book && Object.keys(book).length === 0) {
             console.error('Book state is empty object!')
         }
@@ -37,18 +36,14 @@ export default function BookDetailPage() {
             
             // Fetch book data (which already includes recipes)
             const bookResponse = await apiClient.getBook(id as string)
-            
-            console.log('Raw API response:', bookResponse)
-            
+
             // Extract book data (handle both wrapped and direct responses)
             let bookData: Book
             if (typeof bookResponse === 'object' && bookResponse !== null) {
                 if ('book' in bookResponse && bookResponse.book) {
                     bookData = bookResponse.book as Book
-                    console.log('Using wrapped book data:', bookData)
                 } else if ('id' in bookResponse) {
                     bookData = bookResponse as Book
-                    console.log('Using direct book data:', bookData)
                 } else {
                     console.error('Invalid book response structure:', bookResponse)
                     throw new Error('Invalid book response structure')
@@ -57,9 +52,6 @@ export default function BookDetailPage() {
                 console.error('Invalid book response type:', typeof bookResponse)
                 throw new Error('Invalid book response format')
             }
-            
-            console.log('Final book data:', bookData)
-            console.log('Author data:', bookData.author)
             
             // Validate that we have the required author data
             if (!bookData || !bookData.author || !bookData.author.name) {
@@ -222,6 +214,20 @@ export default function BookDetailPage() {
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Dedication</label>
                                     <p className="text-gray-900">{book.dedication || 'No dedication'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Dedication Image</label>
+                                    {book.dedicationImage ? (
+                                        <div className="mt-2">
+                                            <img 
+                                                src={book.dedicationImage} 
+                                                alt="Dedication" 
+                                                className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-sm">No dedication image</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Cover Color</label>

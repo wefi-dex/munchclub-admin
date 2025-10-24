@@ -50,10 +50,7 @@ export default function RecipeDetailPage() {
             } else {
                 console.error('Invalid recipe response type:', typeof recipeResponse)
                 throw new Error('Invalid recipe response format')
-            }
-            
-            console.log('Final recipe data:', recipeData)
-            
+            }            
             // Validate that we have the required data
             if (!recipeData || !recipeData.title) {
                 console.error('Recipe data is missing required information:', recipeData)

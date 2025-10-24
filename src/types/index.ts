@@ -7,6 +7,9 @@ export interface OrderItem {
     pages?: number
     recipes?: number
     type?: string
+    coverUrl?: string
+    contentUrl?: string
+    jobReference?: string
 }
 
 export interface ShippingAddress {
@@ -54,6 +57,14 @@ export interface Order {
         timestamp: string
         note?: string
     }>
+    // Additional order details
+    messages?: Array<{
+        type: string
+        content: string
+        timestamp: string
+    }>
+    purchasedBooks?: any
+    isMultipleAddress?: boolean
 }
 
 export interface User {
@@ -77,6 +88,7 @@ export interface Book {
     chefName?: string
     type?: string
     dedication?: string
+    dedicationImage?: string
     createdAt: string
     updatedAt: string
     author: {

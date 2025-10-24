@@ -13,7 +13,15 @@ import {
   MapPin, 
   CreditCard,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Eye,
+  FileText,
+  Image,
+  Calendar,
+  MessageSquare,
+  Printer,
+  ExternalLink
 } from 'lucide-react'
 import { Order } from '@/types'
 import { apiClient } from '@/lib/api'
@@ -28,6 +36,8 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [fileViewerOpen, setFileViewerOpen] = useState(false)
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -100,6 +110,33 @@ export default function OrderDetailPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleFileView = (fileUrl: string) => {
+    setSelectedFile(fileUrl)
+    setFileViewerOpen(true)
+  }
+
+  const handleFileDownload = (fileUrl: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = filename
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const getFileIcon = (fileUrl: string) => {
+    if (fileUrl.includes('.pdf')) return <FileText className="w-4 h-4" />
+    if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return <Image className="w-4 h-4" />
+    return <FileText className="w-4 h-4" />
+  }
+
+  const getFileType = (fileUrl: string) => {
+    if (fileUrl.includes('.pdf')) return 'PDF'
+    if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return 'Image'
+    return 'File'
   }
 
   if (loading) {
@@ -216,6 +253,12 @@ export default function OrderDetailPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Recipes
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Files
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Job Reference
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -242,6 +285,56 @@ export default function OrderDetailPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {item.recipes || 0}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex space-x-2">
+                            {item.coverUrl && (
+                              <div className="flex items-center space-x-1">
+                                {getFileIcon(item.coverUrl)}
+                                <button
+                                  onClick={() => handleFileView(item.coverUrl!)}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title={`View ${getFileType(item.coverUrl)}`}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleFileDownload(item.coverUrl!, `cover-${item.productName}.pdf`)}
+                                  className="text-green-600 hover:text-green-800"
+                                  title="Download Cover"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                            {item.contentUrl && (
+                              <div className="flex items-center space-x-1">
+                                {getFileIcon(item.contentUrl)}
+                                <button
+                                  onClick={() => handleFileView(item.contentUrl!)}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title={`View ${getFileType(item.contentUrl)}`}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleFileDownload(item.contentUrl!, `content-${item.productName}.pdf`)}
+                                  className="text-green-600 hover:text-green-800"
+                                  title="Download Content"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                            {!item.coverUrl && !item.contentUrl && (
+                              <span className="text-gray-400 text-xs">No files</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                            {item.jobReference || `${order.id}-${item.id}`}
+                          </code>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -253,46 +346,184 @@ export default function OrderDetailPage() {
           {/* Print Status */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Print Status</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Printer Integration</h3>
             </div>
             <div className="p-6">
-              <PrinterStatus
-                printerOrderIds={order.printerOrderIds || []}
-                printerStatus={order.printerStatus}
-                trackingNumber={order.trackingNumber}
-                estimatedDelivery={order.estimatedDelivery}
-                printerErrorMessage={order.printerErrorMessage}
-              />
+              <div className="space-y-6">
+                {/* Printer Order IDs */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Printer Order IDs</h4>
+                  {order.printerOrderIds && order.printerOrderIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 max-w-md">
+                      {order.printerOrderIds.slice(0, 5).map((printerOrderId, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap"
+                        >
+                          <Printer className="w-3 h-3 mr-1" />
+                          {printerOrderId}
+                        </span>
+                      ))}
+                      {order.printerOrderIds.length > 5 && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          +{order.printerOrderIds.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No printer order IDs assigned</p>
+                  )}
+                </div>
+
+                {/* Printer Status */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Printer Status</h4>
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                      order.printerStatus === 'SUCCESS' ? 'bg-green-100 text-green-800' :
+                      order.printerStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      order.printerStatus === 'ERROR' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {order.printerStatus || 'PENDING'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tracking Information */}
+                {(order.trackingNumber || order.estimatedDelivery) && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Tracking Information</h4>
+                    <div className="space-y-2 max-w-md">
+                      {order.trackingNumber && (
+                        <div className="flex items-center space-x-2">
+                          <Truck className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-600">Tracking:</span>
+                          <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded truncate flex-1 min-w-0">
+                            {order.trackingNumber}
+                          </code>
+                        </div>
+                      )}
+                      {order.estimatedDelivery && (
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-600">Est. Delivery:</span>
+                          <span className="text-sm font-medium">
+                            {formatDate(order.estimatedDelivery)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Printer Error Messages */}
+                {order.printerErrorMessage && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Printer Error</h4>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-w-md">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-red-700 break-words">{order.printerErrorMessage}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Printer Status Component */}
+                <div className="max-w-sm">
+                  <PrinterStatus
+                    printerOrderIds={order.printerOrderIds || []}
+                    printerStatus={order.printerStatus}
+                    trackingNumber={order.trackingNumber}
+                    estimatedDelivery={order.estimatedDelivery}
+                    printerErrorMessage={order.printerErrorMessage}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Order Messages */}
+          {order.messages && order.messages.length > 0 && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Order Messages</h3>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {order.messages.map((message, index) => (
+                    <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900 capitalize">
+                          {message.type}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatDate(message.timestamp)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{message.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Order Status History */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Order Status History</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Order Process Timeline</h3>
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                {order.orderStatusHistory && order.orderStatusHistory.length > 0 ? (
+                  order.orderStatusHistory.map((history, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className={`w-3 h-3 rounded-full ${
+                          index === 0 ? 'bg-blue-600' : 'bg-gray-400'
+                        }`}></div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-900 capitalize">
+                            {history.status}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {formatDate(history.timestamp)}
+                          </p>
+                        </div>
+                        {history.note && (
+                          <p className="text-xs text-gray-500 mt-1">{history.note}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 capitalize">{order.status}</p>
+                        <p className="text-xs text-gray-500">Current status</p>
+                        <p className="text-xs text-gray-400">{formatDate(order.updatedAt || order.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">PENDING</p>
+                        <p className="text-xs text-gray-500">Order created</p>
+                        <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 capitalize">{order.status}</p>
-                    <p className="text-xs text-gray-500">Order updated</p>
-                    <p className="text-xs text-gray-400">{formatDate(order.updatedAt || order.createdAt)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">PENDING</p>
-                    <p className="text-xs text-gray-500">Order created</p>
-                    <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -393,17 +624,174 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
+          {/* Order Summary */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Order ID</span>
+                <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                  {order.id}
+                </code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total Items</span>
+                <span className="text-sm font-medium">{order.items.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total Quantity</span>
+                <span className="text-sm font-medium">
+                  {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Multiple Addresses</span>
+                <span className={`text-sm font-medium ${
+                  order.isMultipleAddress ? 'text-orange-600' : 'text-green-600'
+                }`}>
+                  {order.isMultipleAddress ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Files Attached</span>
+                <span className="text-sm font-medium">
+                  {order.items.filter(item => item.coverUrl || item.contentUrl).length}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Printer Files */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Printer Files</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Order Files</h3>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-500">No printer files available</p>
+              {order.items.some(item => item.coverUrl || item.contentUrl) ? (
+                <div className="space-y-4">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-3">{item.productName}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {item.coverUrl && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              {getFileIcon(item.coverUrl)}
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">Cover PDF</p>
+                                <p className="text-xs text-gray-500">{getFileType(item.coverUrl)}</p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleFileView(item.coverUrl!)}
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                title="View Cover"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleFileDownload(item.coverUrl!, `cover-${item.productName}.pdf`)}
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg"
+                                title="Download Cover"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {item.contentUrl && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              {getFileIcon(item.contentUrl)}
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">Content PDF</p>
+                                <p className="text-xs text-gray-500">{getFileType(item.contentUrl)}</p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleFileView(item.contentUrl!)}
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                title="View Content"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleFileDownload(item.contentUrl!, `content-${item.productName}.pdf`)}
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg"
+                                title="Download Content"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No files available for this order</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* File Viewer Modal */}
+      {fileViewerOpen && selectedFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">File Viewer</h3>
+              <button
+                onClick={() => setFileViewerOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {selectedFile.includes('.pdf') ? (
+                <iframe
+                  src={selectedFile}
+                  className="w-full h-[70vh] border rounded"
+                  title="PDF Viewer"
+                />
+              ) : (
+                <img
+                  src={selectedFile}
+                  alt="File Preview"
+                  className="max-w-full max-h-[70vh] mx-auto"
+                />
+              )}
+            </div>
+            <div className="flex justify-end space-x-2 p-4 border-t">
+              <button
+                onClick={() => handleFileDownload(selectedFile, 'file')}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download</span>
+              </button>
+              <button
+                onClick={() => setFileViewerOpen(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

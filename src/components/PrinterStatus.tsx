@@ -92,15 +92,18 @@ export default function PrinterStatus({
   const Icon = config.icon
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 max-w-sm">
       {/* Printer Order IDs */}
-      <div className="text-xs text-gray-600">
-        Printer Orders: {printerOrderIds.join(', ')}
+      <div className="text-xs text-gray-600 truncate" title={printerOrderIds.join(', ')}>
+        Printer Orders: {printerOrderIds.length > 3 ? 
+          `${printerOrderIds.slice(0, 3).join(', ')} +${printerOrderIds.length - 3} more` : 
+          printerOrderIds.join(', ')
+        }
       </div>
 
       {/* Status Badge */}
       <div className="flex items-center space-x-2">
-        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.color}`}>
+        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.color} whitespace-nowrap`}>
           <Icon className="w-3 h-3 mr-1" />
           {config.label}
         </div>
@@ -109,7 +112,7 @@ export default function PrinterStatus({
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 flex-shrink-0"
           >
             <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -118,7 +121,7 @@ export default function PrinterStatus({
 
       {/* Tracking Information */}
       {trackingNumber && (
-        <div className="text-xs text-gray-600">
+        <div className="text-xs text-gray-600 truncate" title={trackingNumber}>
           <span className="font-medium">Tracking:</span> {trackingNumber}
         </div>
       )}
@@ -132,13 +135,24 @@ export default function PrinterStatus({
 
       {/* Error Message */}
       {printerErrorMessage && (
-        <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
-          <span className="font-medium">Error:</span> {printerErrorMessage}
+        <div className="text-xs text-red-600 bg-red-50 p-2 rounded max-w-sm">
+          <span className="font-medium">Error:</span> 
+          <div className="mt-1 break-words">{printerErrorMessage}</div>
         </div>
       )}
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -53,6 +53,8 @@ export async function GET() {
         coverColor: book.coverColor,
         chefName: book.chefName,
         type: book.type,
+        dedication: book.dedication,
+        dedicationImage: book.dedicationImage,
         createdAt: book.createdAt.toISOString(),
         updatedAt: book.createdAt.toISOString(),
         author: {
@@ -94,6 +96,8 @@ export async function POST(request: NextRequest) {
         coverColor: body.coverColor,
         chefName: body.chefName,
         type: body.type || 'Layflat',
+        dedication: body.dedication,
+        dedicationImage: body.dedicationImage,
         userId: body.userId || 'default-user-id'
       },
       include: {

@@ -55,6 +55,7 @@ export async function GET(
       chefName: book.chefName,
       type: book.type,
       dedication: book.dedication,
+      dedicationImage: book.dedicationImage,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.createdAt.toISOString(),
       author: {
@@ -106,7 +107,8 @@ export async function PUT(
         coverColor: body.coverColor,
         chefName: body.chefName,
         type: body.type,
-        dedication: body.dedication
+        dedication: body.dedication,
+        dedicationImage: body.dedicationImage
       },
       include: {
         user: {
@@ -145,6 +147,7 @@ export async function PUT(
       chefName: book.chefName,
       type: book.type,
       dedication: book.dedication,
+      dedicationImage: book.dedicationImage,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.createdAt.toISOString(),
       author: {

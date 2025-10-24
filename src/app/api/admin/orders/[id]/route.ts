@@ -11,6 +11,9 @@ interface OrderItem {
   pages?: number
   recipes?: number
   type?: string
+  coverUrl?: string
+  contentUrl?: string
+  jobReference?: string
 }
 
 interface ShippingAddress {
@@ -53,6 +56,13 @@ interface OrderDetail {
     timestamp: string
     note?: string
   }>
+  messages?: Array<{
+    type: string
+    content: string
+    timestamp: string
+  }>
+  purchasedBooks?: any
+  isMultipleAddress?: boolean
 }
 
 function transformOrderDetail(order: {
@@ -65,6 +75,8 @@ function transformOrderDetail(order: {
     typePrice: { price: number } | null
     type: string
     quantity: number
+    coverUrl?: string | null
+    contentUrl?: string | null
   }>
   orderShippings: Array<{
     shippingAddress: {
@@ -92,9 +104,18 @@ function transformOrderDetail(order: {
     stripePaymentId?: string
   } | null
   printerOrderIds?: string[]
+  messages?: any[]
+  purchasedBooks?: any
+  isMultipleAddress?: boolean
 }): OrderDetail {
   // Get shipping address from orderShippings
   const shippingAddress = order.orderShippings?.[0]?.shippingAddress || {}
+  
+  // Find file URLs from messages as fallback
+  const fileMessage = order.messages?.find(msg => 
+    msg.type === "file_urls" || msg.type === "printer_files"
+  )
+  const fallbackFileUrls = fileMessage?.fileUrls || []
   
   // Transform status history
   const orderStatusHistory = order.statusHistory?.map((history) => ({
@@ -110,16 +131,23 @@ function transformOrderDetail(order: {
     userId: order.userId,
     userName: order.user.name,
     userEmail: order.user.email || '',
-    items: order.basketItems.map((item) => ({
-      id: item.id,
-      productId: item.book?.id || '',
-      productName: item.book?.title || 'Unknown Book',
-      quantity: item.quantity,
-      price: item.typePrice?.price || 0,
-      pages: 0, // This would need to be calculated from recipes
-      recipes: item.book?.recipes?.length || 0,
-      type: item.type || 'Unknown'
-    })),
+    items: order.basketItems.map((item, index) => {
+      // Use file URLs from basket item, or fallback to messages
+      const fallbackFileUrl = fallbackFileUrls[index]
+      return {
+        id: item.id,
+        productId: item.book?.id || '',
+        productName: item.book?.title || 'Unknown Book',
+        quantity: item.quantity,
+        price: item.typePrice?.price || 0,
+        pages: 0, // This would need to be calculated from recipes
+        recipes: item.book?.recipes?.length || 0,
+        type: item.type || 'Unknown',
+        coverUrl: item.coverUrl || fallbackFileUrl?.cover || undefined,
+        contentUrl: item.contentUrl || fallbackFileUrl?.text || undefined,
+        jobReference: `${order.id}-${item.id}` // Generate job reference
+      }
+    }),
     total: order.payment?.amount || 0,
     status: order.orderStatus,
     createdAt: order.createdAt.toISOString(),
@@ -145,7 +173,10 @@ function transformOrderDetail(order: {
     trackingNumber: undefined,
     estimatedDelivery: undefined,
     printerErrorMessage: undefined,
-    orderStatusHistory
+    orderStatusHistory,
+    messages: order.messages || [],
+    purchasedBooks: order.purchasedBooks || null,
+    isMultipleAddress: order.isMultipleAddress || false
   }
 }
 
@@ -175,7 +206,13 @@ export async function GET(
           }
         },
         basketItems: {
-          include: {
+          select: {
+            id: true,
+            bookId: true,
+            type: true,
+            quantity: true,
+            coverUrl: true,
+            contentUrl: true,
             book: {
               select: {
                 id: true,
@@ -265,7 +302,13 @@ export async function PATCH(
           }
         },
         basketItems: {
-          include: {
+          select: {
+            id: true,
+            bookId: true,
+            type: true,
+            quantity: true,
+            coverUrl: true,
+            contentUrl: true,
             book: {
               select: {
                 id: true,
