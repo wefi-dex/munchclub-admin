@@ -35,6 +35,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [apiAvailable, setApiAvailable] = useState(true)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   const fetchDashboardStats = async (isRefresh = false) => {
     try {
@@ -304,39 +305,90 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="h-56">
-            <svg viewBox="0 0 400 160" className="w-full h-full">
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polyline
-                fill="none"
-                stroke="#6366f1"
-                strokeWidth="3"
-                points={stats?.revenueData
-                  .map((v, idx) => {
-                    const x = (idx / (stats.revenueData.length - 1)) * 380 + 10;
-                    const y = 150 - (v / Math.max(...stats.revenueData, 1)) * 140;
-                    return `${x},${y}`;
-                  })
-                  .join(" ")}
-              />
-              <polygon
-                fill="url(#grad)"
-                points={(() => {
-                  const pts = stats?.revenueData.map((v, idx) => {
-                    const x = (idx / (stats.revenueData.length - 1)) * 380 + 10;
-                    const y = 150 - (v / Math.max(...stats.revenueData, 1)) * 140;
-                    return `${x},${y}`;
-                  }) || [];
-                  return `10,150 ${pts.join(" ")} 390,150`;
-                })()}
-              />
-              <line x1="10" y1="150" x2="390" y2="150" stroke="#e2e8f0" />
-              <line x1="10" y1="10" x2="10" y2="150" stroke="#e2e8f0" />
+          <div className="h-64">
+            <svg viewBox="0 0 440 220" className="w-full h-full">
+              {(() => {
+                const data = stats?.revenueData || []
+                const maxVal = Math.max(...data, 1)
+                const padLeft = 40
+                const padBottom = 28
+                const width = 420
+                const height = 200
+                const x0 = padLeft
+                const y0 = height - padBottom
+
+                // Y-axis grid and labels (5 ticks)
+                const ticks = 5
+                const yTicks = Array.from({ length: ticks + 1 }, (_, i) => (i * maxVal) / ticks)
+                const monthLabels = (() => {
+                  const labels: string[] = []
+                  const now = new Date()
+                  for (let i = 11; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+                    labels.push(d.toLocaleString('en-US', { month: 'short' }))
+                  }
+                  return labels
+                })()
+
+                const getX = (idx: number) => x0 + (idx / Math.max(data.length - 1, 1)) * (width - padLeft - 10)
+                const getY = (val: number) => y0 - (val / maxVal) * (height - padBottom - 10)
+
+                const points = data.map((v, i) => `${getX(i)},${getY(v)}`).join(' ')
+
+                return (
+                  <g>
+                    <defs>
+                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Grid lines */}
+                    {yTicks.map((t, i) => (
+                      <g key={`yt-${i}`}>
+                        <line x1={x0} y1={getY(t)} x2={width - 10} y2={getY(t)} stroke="#e2e8f0" strokeDasharray="4 4" />
+                        <text x={x0 - 8} y={getY(t)} textAnchor="end" dominantBaseline="middle" className="fill-slate-400 text-[10px]">
+                          {formatCurrency(Math.round(t))}
+                        </text>
+                      </g>
+                    ))}
+
+                    {/* X labels */}
+                    {data.map((_, i) => (
+                      <text key={`xl-${i}`} x={getX(i)} y={y0 + 14} textAnchor="middle" className="fill-slate-400 text-[10px]">
+                        {monthLabels[i]}
+                      </text>
+                    ))}
+
+                    {/* Area fill */}
+                    <polygon fill="url(#revGrad)" points={`${x0},${y0} ${points} ${width - 10},${y0}`} />
+
+                    {/* Line */}
+                    <polyline fill="none" stroke="#6366f1" strokeWidth="3" points={points} />
+
+                    {/* Points and tooltips */}
+                    {data.map((v, i) => (
+                      <g key={`pt-${i}`} onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(null)}>
+                        <circle cx={getX(i)} cy={getY(v)} r={3} fill="#6366f1" />
+                        {hoverIdx === i && (
+                          <g>
+                            <line x1={getX(i)} y1={getY(v)} x2={getX(i)} y2={y0} stroke="#c7d2fe" strokeDasharray="3 3" />
+                            <rect x={getX(i) - 36} y={getY(v) - 34} width="72" height="24" rx="6" fill="#1f2937" opacity="0.95" />
+                            <text x={getX(i)} y={getY(v) - 18} textAnchor="middle" className="fill-white text-[11px] font-semibold">
+                              {formatCurrency(Math.round(v))}
+                            </text>
+                          </g>
+                        )}
+                      </g>
+                    ))}
+
+                    {/* Axes */}
+                    <line x1={x0} y1={y0} x2={width - 10} y2={y0} stroke="#94a3b8" />
+                    <line x1={x0} y1={10} x2={x0} y2={y0} stroke="#94a3b8" />
+                  </g>
+                )
+              })()}
             </svg>
           </div>
         </div>

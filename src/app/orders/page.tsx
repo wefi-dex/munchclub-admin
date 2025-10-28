@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Filter, MoreVertical, Eye, Package, Truck, CheckCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Filter, MoreVertical, Eye, Package, Truck, CheckCircle, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { Order } from '@/types'
 import { apiClient } from '@/lib/api'
 import PrinterStatus from '@/components/PrinterStatus'
@@ -14,6 +14,11 @@ export default function OrdersPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [refreshing, setRefreshing] = useState(false)
+    const [sortField, setSortField] = useState<'date'|'customer'|'status'|'total'>('date')
+    const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc')
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
+    const [deleting, setDeleting] = useState(false)
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -32,40 +37,60 @@ export default function OrdersPage() {
     // Stats state
     const [stats, setStats] = useState(defaultStats)
 
-    const fetchOrders = async (page: number = currentPage, limit: number = pageSize, isRefresh = false) => {
-        try {
-            // Set loading state
-            if (isRefresh) {
-                setRefreshing(true)
-            } else {
-                setLoading(true)
-            }
+    const fetchOrders = async (
+        page: number = currentPage,
+        limit: number = pageSize,
+        isRefresh = false,
+        qOverride?: string,
+        statusOverride?: string,
+        sortFieldOverride?: typeof sortField,
+        sortDirOverride?: typeof sortDir
+    ) => {
+        const qVal = (qOverride !== undefined ? qOverride : searchTerm).trim()
+        const statusVal = (statusOverride !== undefined ? statusOverride : statusFilter)
+        const sfVal = (sortFieldOverride !== undefined ? sortFieldOverride : sortField)
+        const sdVal = (sortDirOverride !== undefined ? sortDirOverride : sortDir)
 
-            // Fetch orders data
-            const response = await apiClient.getOrders(page, limit)
-            
-            // Update state with response data
-            setOrders((response.orders as Order[]) || [])
-            setTotalPages(response.pagination?.totalPages || 1)
-            setTotalCount(response.pagination?.totalCount || 0)
-            setCurrentPage(response.pagination?.currentPage || 1)
-            
-            // Set stats with fallback defaults
-            setStats((response.stats as typeof defaultStats) || defaultStats)
-            
+        // Set loading state
+        setRefreshing(Boolean(isRefresh))
+        setLoading(!isRefresh)
+
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: String(limit),
+                sortField: sfVal,
+                sortDir: sdVal,
+            })
+            if (qVal) params.set('q', qVal)
+            if (statusVal !== 'all') params.set('status', statusVal)
+
+            const url = `/admin/orders?${params.toString()}`
+            const response = await apiClient.request<any>(url)
+
+            setOrders((response?.orders as Order[]) || [])
+            setTotalPages(response?.pagination?.totalPages || 1)
+            setTotalCount(response?.pagination?.totalCount || 0)
+            setCurrentPage(response?.pagination?.currentPage || 1)
+            setStats((response?.stats as typeof defaultStats) || defaultStats)
         } catch (error) {
             console.error('Failed to fetch orders:', error)
             setOrders([])
         } finally {
-            // Reset loading states
             setLoading(false)
             setRefreshing(false)
         }
     }
 
     useEffect(() => {
-        fetchOrders()
+        // Initial fetch
+        fetchOrders(1, pageSize)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const submitSearch = () => {
+        setCurrentPage(1)
+        fetchOrders(1, pageSize, false, searchTerm, statusFilter, sortField, sortDir)
+    }
 
     // Pagination handlers
     const handlePageChange = (newPage: number) => {
@@ -85,17 +110,8 @@ export default function OrdersPage() {
         fetchOrders(currentPage, pageSize, true)
     }
 
-    // Filter orders based on search term and status
-    const filteredOrders = orders.filter(order => {
-        const searchLower = searchTerm.toLowerCase()
-        const matchesSearch = order.id.includes(searchTerm) ||
-            order.userName.toLowerCase().includes(searchLower) ||
-            order.userEmail.toLowerCase().includes(searchLower)
-        
-        const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-        
-        return matchesSearch && matchesStatus
-    })
+    // Data is already filtered on the server
+    const filteredOrders = orders
 
     const getStatusIcon = (status: string) => {
         switch (status.toLowerCase()) {
@@ -204,18 +220,21 @@ export default function OrdersPage() {
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <button onClick={submitSearch} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" title="Search">
+                            <Search className="w-4 h-4" />
+                        </button>
                         <input
                             type="text"
                             placeholder="Search orders..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => { const val = e.target.value; setStatusFilter(val); setCurrentPage(1); fetchOrders(1, pageSize, false, searchTerm, val, sortField, sortDir) }}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                         <option value="all">All Status</option>
@@ -242,29 +261,59 @@ export default function OrdersPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Order ID
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Customer
+                                
+                                <th
+                                    onClick={() => {
+                                        const nextDir = sortField === 'customer' && sortDir === 'asc' ? 'desc' : 'asc'
+                                        setSortField('customer'); setSortDir(nextDir as any)
+                                        fetchOrders(1, pageSize, false, searchTerm, statusFilter, 'customer', nextDir as any)
+                                    }}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                                    title="Sort by customer"
+                                >
+                                    Customer {sortField === 'customer' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Items
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total
+                                <th
+                                    onClick={() => {
+                                        const nextDir = sortField === 'total' && sortDir === 'asc' ? 'desc' : 'asc'
+                                        setSortField('total'); setSortDir(nextDir as any)
+                                        fetchOrders(1, pageSize, false, searchTerm, statusFilter, 'total', nextDir as any)
+                                    }}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                                    title="Sort by total"
+                                >
+                                    Total {sortField === 'total' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Payment
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
+                                <th
+                                    onClick={() => {
+                                        const nextDir = sortField === 'status' && sortDir === 'asc' ? 'desc' : 'asc'
+                                        setSortField('status'); setSortDir(nextDir as any)
+                                        fetchOrders(1, pageSize, false, searchTerm, statusFilter, 'status', nextDir as any)
+                                    }}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                                    title="Sort by status"
+                                >
+                                    Status {sortField === 'status' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
                                     Printer Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Date
+                                <th
+                                    onClick={() => {
+                                        const nextDir = sortField === 'date' && sortDir === 'asc' ? 'desc' : 'asc'
+                                        setSortField('date'); setSortDir(nextDir as any)
+                                        fetchOrders(1, pageSize, false, searchTerm, statusFilter, 'date', nextDir as any)
+                                    }}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                                    title="Sort by date"
+                                >
+                                    Date {sortField === 'date' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -273,10 +322,12 @@ export default function OrdersPage() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredOrders.map((order) => (
-                                <tr key={order.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">#{order.id}</div>
-                                    </td>
+                                <tr
+                                    key={order.id}
+                                    onClick={() => router.push(`/orders/${order.id}`)}
+                                    className="hover:bg-gray-50 cursor-pointer"
+                                >
+                                    
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">{order.userName}</div>
                                         <div className="text-sm text-gray-500">{order.userEmail}</div>
@@ -312,26 +363,35 @@ export default function OrdersPage() {
                                             <span className="ml-1 capitalize">{order.status}</span>
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <PrinterStatus
-                                            printerOrderIds={order.printerOrderIds || []}
-                                            printerStatus={order.printerStatus}
-                                            trackingNumber={order.trackingNumber}
-                                            estimatedDelivery={order.estimatedDelivery}
-                                            printerErrorMessage={order.printerErrorMessage}
-                                        />
+                                    <td className="px-2 py-4 whitespace-nowrap w-32">
+                                        <div className="max-w-[250px] overflow-hidden text-ellipsis">
+                                            <PrinterStatus
+                                                printerOrderIds={order.printerOrderIds || []}
+                                                printerStatus={order.printerStatus}
+                                                trackingNumber={order.trackingNumber}
+                                                estimatedDelivery={order.estimatedDelivery}
+                                                printerErrorMessage={order.printerErrorMessage}
+                                            />
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(order.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex space-x-2">
+                                        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                                             <button 
                                                 onClick={() => router.push(`/orders/${order.id}`)}
                                                 className="text-blue-600 hover:text-blue-900"
                                                 title="View Order Details"
                                             >
                                                 <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => { setOrderToDelete(order.id); setDeleteModalOpen(true) }}
+                                                className="text-red-600 hover:text-red-800"
+                                                title="Delete Order"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                             <button className="text-indigo-600 hover:text-indigo-900">
                                                 <MoreVertical className="w-4 h-4" />
@@ -416,6 +476,53 @@ export default function OrdersPage() {
                                 className="p-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {deleteModalOpen && orderToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+                        <div className="p-5 border-b">
+                            <h3 className="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+                        </div>
+                        <div className="p-5 space-y-3">
+                            <p className="text-sm text-gray-700">Are you sure you want to delete this order?</p>
+                        </div>
+                        <div className="flex justify-end gap-2 p-4 border-t">
+                            <button
+                                onClick={() => { setDeleteModalOpen(false); setOrderToDelete(null) }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (deleting) return
+                                    setDeleting(true)
+                                    try {
+                                        await apiClient.request(`/admin/orders/${orderToDelete}`, { method: 'DELETE' })
+                                        setDeleteModalOpen(false)
+                                        setOrderToDelete(null)
+                                        fetchOrders(currentPage, pageSize, true, searchTerm, statusFilter, sortField, sortDir)
+                                    } catch (err) {
+                                        console.error('Failed to delete order:', err)
+                                    } finally {
+                                        setDeleting(false)
+                                    }
+                                }}
+                                disabled={deleting}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-red-400"
+                            >
+                                {deleting ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Deleting...
+                                    </span>
+                                ) : (
+                                    'Delete'
+                                )}
                             </button>
                         </div>
                     </div>

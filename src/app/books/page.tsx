@@ -120,7 +120,7 @@ export default function BooksPage() {
         const book = books.find(b => b.id === bookId)
         if (!book) return
 
-        if (confirm(`Are you sure you want to delete "${book.title}"? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete "${book.title}"? `)) {
             try {
                 await apiClient.deleteBook(bookId)
                 await fetchBooks(true) // Refresh the list
@@ -150,7 +150,7 @@ export default function BooksPage() {
     const handleBulkDelete = async () => {
         if (selectedBooks.length === 0) return
 
-        if (confirm(`Are you sure you want to delete ${selectedBooks.length} book(s)? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete ${selectedBooks.length} book(s)? `)) {
             try {
                 await Promise.all(selectedBooks.map(id => apiClient.deleteBook(id)))
                 setSelectedBooks([])

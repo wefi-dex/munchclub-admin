@@ -38,6 +38,8 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [fileViewerOpen, setFileViewerOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -201,7 +203,7 @@ export default function OrderDetailPage() {
           {['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((status) => (
             <button
               key={status}
-              onClick={() => handleStatusUpdate(status)}
+              onClick={() => { setPendingStatus(status); setConfirmOpen(true) }}
               disabled={updating || order.status === status}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 order.status === status
@@ -222,126 +224,7 @@ export default function OrderDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Order Items */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Order Items</h3>
-            </div>
-            <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Book
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Pages
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Recipes
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Files
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Job Reference
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {order.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.productName}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.type || 'Unknown'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.quantity}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          £{item.price.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          £{(item.price * item.quantity).toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.pages || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.recipes || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
-                            {item.coverUrl && (
-                              <div className="flex items-center space-x-1">
-                                {getFileIcon(item.coverUrl)}
-                                <button
-                                  onClick={() => handleFileView(item.coverUrl!)}
-                                  className="text-blue-600 hover:text-blue-800"
-                                  title={`View ${getFileType(item.coverUrl)}`}
-                                >
-                                  <Eye className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleFileDownload(item.coverUrl!, `cover-${item.productName}.pdf`)}
-                                  className="text-green-600 hover:text-green-800"
-                                  title="Download Cover"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
-                            {item.contentUrl && (
-                              <div className="flex items-center space-x-1">
-                                {getFileIcon(item.contentUrl)}
-                                <button
-                                  onClick={() => handleFileView(item.contentUrl!)}
-                                  className="text-blue-600 hover:text-blue-800"
-                                  title={`View ${getFileType(item.contentUrl)}`}
-                                >
-                                  <Eye className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleFileDownload(item.contentUrl!, `content-${item.productName}.pdf`)}
-                                  className="text-green-600 hover:text-green-800"
-                                  title="Download Content"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
-                            {!item.coverUrl && !item.contentUrl && (
-                              <span className="text-gray-400 text-xs">No files</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                            {item.jobReference || `${order.id}-${item.id}`}
-                          </code>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          
 
           {/* Print Status */}
           <div className="bg-white rounded-lg shadow">
@@ -462,7 +345,45 @@ export default function OrderDetailPage() {
                           {formatDate(message.timestamp)}
                         </p>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{message.content}</p>
+                      {message?.content && (
+                        <p className="text-sm text-gray-600 mt-1">{message.content}</p>
+                      )}
+                      {/* Render file URLs if present */}
+                      {Array.isArray((message as any).fileUrls) && (message as any).fileUrls.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {((message as any).fileUrls as any[]).map((files, i) => {
+                            const cover = files?.cover || files?.coverPdf || files?.coverUrl
+                            const text = files?.text || files?.textPdf || files?.textUrl
+                            return (
+                              <div key={i} className="flex items-center gap-3 text-sm">
+                                {cover && (
+                                  <a
+                                    href={cover}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" /> Cover PDF
+                                  </a>
+                                )}
+                                {text && (
+                                  <a
+                                    href={text}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" /> Content PDF
+                                  </a>
+                                )}
+                                {!cover && !text && (
+                                  <span className="text-gray-400">No file links</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -638,12 +559,24 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Total Items</span>
-                <span className="text-sm font-medium">{order.items.length}</span>
+                <span className="text-sm font-medium">{order.summary?.totalItems ?? order.items.length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Total Quantity</span>
                 <span className="text-sm font-medium">
-                  {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  {order.summary?.totalQuantity ?? order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total Recipes</span>
+                <span className="text-sm font-medium">
+                  {order.summary?.totalRecipes ?? order.items.reduce((sum, item) => sum + (item.recipes || 0), 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Total Pages (estimated)</span>
+                <span className="text-sm font-medium">
+                  {order.summary?.totalPages ?? order.items.reduce((sum, item) => sum + (item.pages || 0), 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -654,93 +587,10 @@ export default function OrderDetailPage() {
                   {order.isMultipleAddress ? 'Yes' : 'No'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Files Attached</span>
-                <span className="text-sm font-medium">
-                  {order.items.filter(item => item.coverUrl || item.contentUrl).length}
-                </span>
-              </div>
             </div>
           </div>
 
-          {/* Printer Files */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Order Files</h3>
-            </div>
-            <div className="p-6">
-              {order.items.some(item => item.coverUrl || item.contentUrl) ? (
-                <div className="space-y-4">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-3">{item.productName}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {item.coverUrl && (
-                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              {getFileIcon(item.coverUrl)}
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">Cover PDF</p>
-                                <p className="text-xs text-gray-500">{getFileType(item.coverUrl)}</p>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleFileView(item.coverUrl!)}
-                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                                title="View Cover"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleFileDownload(item.coverUrl!, `cover-${item.productName}.pdf`)}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg"
-                                title="Download Cover"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {item.contentUrl && (
-                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              {getFileIcon(item.contentUrl)}
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">Content PDF</p>
-                                <p className="text-xs text-gray-500">{getFileType(item.contentUrl)}</p>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleFileView(item.contentUrl!)}
-                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                                title="View Content"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleFileDownload(item.contentUrl!, `content-${item.productName}.pdf`)}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg"
-                                title="Download Content"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No files available for this order</p>
-                </div>
-              )}
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -787,6 +637,44 @@ export default function OrderDetailPage() {
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Status Update Modal */}
+      {confirmOpen && pendingStatus && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Status Update</h3>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-gray-700">
+                Are you sure you want to update order <span className="font-mono font-medium">#{order.id}</span> to
+                <span className="ml-1 font-semibold">{pendingStatus}</span>?
+              </p>
+              <p className="text-xs text-gray-500">This action will be recorded in the order history.</p>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <button
+                onClick={() => { setConfirmOpen(false); setPendingStatus(null) }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (pendingStatus) {
+                    await handleStatusUpdate(pendingStatus)
+                  }
+                  setConfirmOpen(false)
+                  setPendingStatus(null)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Confirm
               </button>
             </div>
           </div>

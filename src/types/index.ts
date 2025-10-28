@@ -60,11 +60,23 @@ export interface Order {
     // Additional order details
     messages?: Array<{
         type: string
-        content: string
+        content?: string
         timestamp: string
+        fileUrls?: Array<{
+            cover?: string
+            text?: string
+            coverUrl?: string
+            textUrl?: string
+        }> | any
     }>
     purchasedBooks?: any
     isMultipleAddress?: boolean
+    summary?: {
+        totalItems: number
+        totalQuantity: number
+        totalRecipes: number
+        totalPages: number
+    }
 }
 
 export interface User {

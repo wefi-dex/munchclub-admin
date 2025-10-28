@@ -97,7 +97,7 @@ export default function BookDetailPage() {
     const handleDeleteBook = async () => {
         if (!book) return
         
-        if (confirm(`Are you sure you want to delete "${book.title}"? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete "${book.title}"?`)) {
             try {
                 await apiClient.deleteBook(book.id)
                 router.push('/books')

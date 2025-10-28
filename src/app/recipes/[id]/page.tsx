@@ -86,7 +86,7 @@ export default function RecipeDetailPage() {
     const handleDeleteRecipe = async () => {
         if (!recipe) return
         
-        if (confirm(`Are you sure you want to delete "${recipe.title}"? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete "${recipe.title}"? `)) {
             try {
                 await apiClient.deleteRecipe(recipe.id)
                 router.push('/recipes')

@@ -63,6 +63,32 @@ interface OrderDetail {
   }>
   purchasedBooks?: any
   isMultipleAddress?: boolean
+  // Precomputed summary fields
+  summary?: {
+    totalItems: number
+    totalQuantity: number
+    totalRecipes: number
+    totalPages: number
+  }
+}
+
+// Calculate total pages based on number of recipes
+function calculateTotalBookPages(numberOfRecipes: number): number {
+  const defaultPages = 16
+  const recipePages = numberOfRecipes * 2
+  const recipeListPageCount = Math.ceil(numberOfRecipes / 14)
+
+  let additionalPages = 0
+
+  if (recipeListPageCount <= 2) {
+    additionalPages = 0
+  } else if (recipeListPageCount <= 4) {
+    additionalPages = 2
+  } else {
+    additionalPages = 4 + Math.ceil((recipeListPageCount - 5) / 2) * 2
+  }
+
+  return defaultPages + recipePages + additionalPages
 }
 
 function transformOrderDetail(order: {
@@ -111,11 +137,12 @@ function transformOrderDetail(order: {
   // Get shipping address from orderShippings
   const shippingAddress = order.orderShippings?.[0]?.shippingAddress || {}
   
-  // Find file URLs from messages as fallback
-  const fileMessage = order.messages?.find(msg => 
-    msg.type === "file_urls" || msg.type === "printer_files"
-  )
-  const fallbackFileUrls = fileMessage?.fileUrls || []
+  // Find file URLs from messages as fallback (supports multiple message formats)
+  const fileMessage = order.messages?.find((msg: any) => 
+    msg?.type === "file_urls" || msg?.type === "printer_files"
+  ) as any
+  const rawFallback = (fileMessage?.fileUrls ?? []) as any[]
+  const fallbackFileUrls = Array.isArray(rawFallback) ? rawFallback : []
   
   // Transform status history
   const orderStatusHistory = order.statusHistory?.map((history) => ({
@@ -140,11 +167,20 @@ function transformOrderDetail(order: {
         productName: item.book?.title || 'Unknown Book',
         quantity: item.quantity,
         price: item.typePrice?.price || 0,
-        pages: 0, // This would need to be calculated from recipes
+        pages: calculateTotalBookPages(item.book?.recipes?.length || 0),
         recipes: item.book?.recipes?.length || 0,
         type: item.type || 'Unknown',
-        coverUrl: item.coverUrl || fallbackFileUrl?.cover || undefined,
-        contentUrl: item.contentUrl || fallbackFileUrl?.text || undefined,
+        // Prefer item URLs; then email/printer upload URLs from messages.
+        coverUrl: item.coverUrl 
+          || fallbackFileUrl?.cover 
+          || fallbackFileUrl?.coverPdf 
+          || fallbackFileUrl?.coverUrl 
+          || undefined,
+        contentUrl: item.contentUrl 
+          || fallbackFileUrl?.text 
+          || fallbackFileUrl?.textPdf 
+          || fallbackFileUrl?.textUrl 
+          || undefined,
         jobReference: `${order.id}-${item.id}` // Generate job reference
       }
     }),
@@ -176,7 +212,30 @@ function transformOrderDetail(order: {
     orderStatusHistory,
     messages: order.messages || [],
     purchasedBooks: order.purchasedBooks || null,
-    isMultipleAddress: order.isMultipleAddress || false
+    isMultipleAddress: order.isMultipleAddress || false,
+    summary: (() => {
+      const hasBasket = Array.isArray(order.basketItems) && order.basketItems.length > 0
+      const hasPurchased = Array.isArray(order.purchasedBooks) && order.purchasedBooks.length > 0
+
+      if (hasBasket) {
+        const totalItems = order.basketItems.length
+        const totalQuantity = order.basketItems.reduce((sum, bi) => sum + (bi.quantity || 0), 0)
+        const totalRecipes = order.basketItems.reduce((sum, bi) => sum + (bi.book?.recipes?.length || 0), 0)
+        const totalPages = order.basketItems.reduce((sum, bi) => sum + calculateTotalBookPages(bi.book?.recipes?.length || 0), 0)
+        return { totalItems, totalQuantity, totalRecipes, totalPages }
+      }
+
+      if (hasPurchased) {
+        const purchased = order.purchasedBooks as Array<{ quantity?: number; numberOfRecipes?: number; pages?: number; }>
+        const totalItems = purchased.length
+        const totalQuantity = purchased.reduce((sum, it) => sum + (it.quantity || 0), 0)
+        const totalRecipes = purchased.reduce((sum, it) => sum + (it.numberOfRecipes || 0), 0)
+        const totalPages = purchased.reduce((sum, it) => sum + (it.pages || 0), 0)
+        return { totalItems, totalQuantity, totalRecipes, totalPages }
+      }
+
+      return { totalItems: 0, totalQuantity: 0, totalRecipes: 0, totalPages: 0 }
+    })()
   }
 }
 
@@ -365,6 +424,37 @@ export async function PATCH(
     console.error('Error updating order:', error)
     return NextResponse.json(
       { error: 'Failed to update order' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: orderId } = await params
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: 'Order ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Clean up related records first, then delete order (sequentially to avoid transaction conflicts)
+    await prisma.orderShipping.deleteMany({ where: { orderId } }).catch(() => {})
+    await prisma.orderStatusHistory.deleteMany({ where: { orderId } }).catch(() => {})
+    await prisma.payment.deleteMany({ where: { orderId } }).catch(() => {})
+    await prisma.basketItem.updateMany({ where: { orderId }, data: { orderId: null } }).catch(() => {})
+    await prisma.order.deleteMany({ where: { id: orderId } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting order:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete order' },
       { status: 500 }
     )
   }

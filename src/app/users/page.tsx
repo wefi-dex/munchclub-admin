@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, Search, Filter, MoreVertical, UserPlus, Mail, Calendar, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, Search, Filter, UserPlus, Mail, Calendar, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { User } from '@/types'
 import { apiClient } from '@/lib/api'
 
@@ -11,6 +11,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -39,16 +42,22 @@ export default function UsersPage() {
       }
 
       // Fetch users data
-      const response = await apiClient.getUsers(page, limit)
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('limit', String(limit))
+      if (searchTerm.trim()) params.set('q', searchTerm.trim())
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+
+      const response = await apiClient.request<{ users: User[]; pagination?: { totalPages: number; totalCount: number; currentPage: number }; stats?: typeof defaultStats }>(`/admin/users?${params.toString()}`)
       
       // Update state with response data
-      setUsers((response.users as User[]) || [])
-      setTotalPages(response.pagination?.totalPages || 1)
-      setTotalCount(response.pagination?.totalCount || 0)
-      setCurrentPage(response.pagination?.currentPage || 1)
+      setUsers((response?.users as User[]) || [])
+      setTotalPages(response?.pagination?.totalPages || 1)
+      setTotalCount(response?.pagination?.totalCount || 0)
+      setCurrentPage(response?.pagination?.currentPage || 1)
       
       // Set stats with fallback defaults
-      setStats((response.stats as typeof defaultStats) || defaultStats)
+      setStats((response?.stats as typeof defaultStats) || defaultStats)
       
     } catch (error) {
       console.error('Failed to fetch users:', error)
@@ -63,6 +72,11 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitSearch = () => {
+    setCurrentPage(1)
+    fetchUsers(1, pageSize)
+  }
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
@@ -181,13 +195,16 @@ export default function UsersPage() {
       <div className="card-modern p-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <button onClick={submitSearch} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" title="Search">
+              <Search className="w-4 h-4" />
+            </button>
             <input
               type="text"
               placeholder="Search users by name or email..."
               className="input-modern pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -195,7 +212,7 @@ export default function UsersPage() {
             <select
               className="input-modern w-auto"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); fetchUsers(1, pageSize) }}
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -253,9 +270,13 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-slate-400 hover:text-slate-600">
-                      <MoreVertical className="w-4 h-4" />
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => { setUserToDelete(user.id); setDeleteModalOpen(true) }}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete User"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
@@ -344,6 +365,62 @@ export default function UsersPage() {
                 className="p-2 rounded-md border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteModalOpen && userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="p-5 border-b bg-gradient-to-r from-rose-50 to-orange-50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-full bg-rose-100 text-rose-600">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">Delete user?</h3>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-slate-700">This will permanently remove the user and related data.</p>
+              <div className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-md p-3">
+                Tip: Consider disabling the account instead if you may need it later.
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t bg-slate-50">
+              <button
+                onClick={() => { setDeleteModalOpen(false); setUserToDelete(null) }}
+                className="px-4 py-2 bg-white text-slate-700 rounded-lg border border-slate-200 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (deleting) return
+                  setDeleting(true)
+                  try {
+                    await apiClient.request(`/admin/users/${userToDelete}`, { method: 'DELETE' })
+                    setDeleteModalOpen(false)
+                    setUserToDelete(null)
+                    fetchUsers(currentPage, pageSize, true)
+                  } catch (err) {
+                    console.error('Failed to delete user:', err)
+                  } finally {
+                    setDeleting(false)
+                  }
+                }}
+                disabled={deleting}
+                className="px-4 py-2 bg-rose-600 text-white rounded-lg shadow-sm hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-rose-400"
+              >
+                {deleting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete user'
+                )}
               </button>
             </div>
           </div>

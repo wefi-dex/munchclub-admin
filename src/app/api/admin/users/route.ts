@@ -7,9 +7,32 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
+    const q = (searchParams.get('q') || '').trim()
+    const status = (searchParams.get('status') || '').trim().toLowerCase()
 
-    const [users, totalCount] = await Promise.all([
+    // Build filters
+    const andFilters: any[] = []
+    if (q) {
+      andFilters.push({
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } }
+        ]
+      })
+    }
+    if (status) {
+      if (status === 'active') andFilters.push({ Order: { some: {} } })
+      else if (status === 'inactive') andFilters.push({ Order: { none: {} } })
+      else if (status === 'pending') {
+        // Example: users with no books and no recipes and no orders
+        andFilters.push({ AND: [{ Order: { none: {} } }, { books: { none: {} } }, { recipes: { none: {} } }] })
+      }
+    }
+    const where = andFilters.length ? { AND: andFilters } : undefined
+
+    const [users, totalCount, usersWithOrdersCount, bookCreatorsCount, recipeCreatorsCount] = await Promise.all([
       prisma.user.findMany({
+        where,
         skip,
         take: limit,
         include: {
@@ -33,7 +56,10 @@ export async function GET(request: NextRequest) {
           createdAt: 'desc'
         }
       }),
-      prisma.user.count()
+      prisma.user.count({ where }),
+      prisma.user.count({ where: { Order: { some: {} } } }),
+      prisma.user.count({ where: { books: { some: {} } } }),
+      prisma.user.count({ where: { recipes: { some: {} } } })
     ])
 
     const transformedUsers = users.map(user => ({
@@ -57,9 +83,9 @@ export async function GET(request: NextRequest) {
       },
       stats: {
         totalUsers: totalCount,
-        totalBooks: transformedUsers.reduce((sum, user) => sum + user.bookCount, 0),
-        totalRecipes: transformedUsers.reduce((sum, user) => sum + user.recipeCount, 0),
-        totalOrders: transformedUsers.reduce((sum, user) => sum + user.orderCount, 0)
+        usersWithOrders: usersWithOrdersCount,
+        bookCreators: bookCreatorsCount,
+        recipeCreators: recipeCreatorsCount
       }
     })
   } catch (error) {
