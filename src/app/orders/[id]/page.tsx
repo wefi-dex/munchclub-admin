@@ -14,12 +14,7 @@ import {
   CreditCard,
   AlertCircle,
   RefreshCw,
-  Download,
-  Eye,
-  FileText,
-  Image,
   Calendar,
-  MessageSquare,
   Printer,
   ExternalLink
 } from 'lucide-react'
@@ -36,8 +31,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [fileViewerOpen, setFileViewerOpen] = useState(false)
+  // Removed unused file viewer state
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
 
@@ -114,32 +108,9 @@ export default function OrderDetailPage() {
     })
   }
 
-  const handleFileView = (fileUrl: string) => {
-    setSelectedFile(fileUrl)
-    setFileViewerOpen(true)
-  }
+  // Removed unused file download helper
 
-  const handleFileDownload = (fileUrl: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = fileUrl
-    link.download = filename
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  const getFileIcon = (fileUrl: string) => {
-    if (fileUrl.includes('.pdf')) return <FileText className="w-4 h-4" />
-    if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return <Image className="w-4 h-4" />
-    return <FileText className="w-4 h-4" />
-  }
-
-  const getFileType = (fileUrl: string) => {
-    if (fileUrl.includes('.pdf')) return 'PDF'
-    if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return 'Image'
-    return 'File'
-  }
+  // File helpers are inlined where needed to avoid unused warnings
 
   if (loading) {
     return (
@@ -594,54 +565,7 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* File Viewer Modal */}
-      {fileViewerOpen && selectedFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] w-full mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">File Viewer</h3>
-              <button
-                onClick={() => setFileViewerOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-4">
-              {selectedFile.includes('.pdf') ? (
-                <iframe
-                  src={selectedFile}
-                  className="w-full h-[70vh] border rounded"
-                  title="PDF Viewer"
-                />
-              ) : (
-                <img
-                  src={selectedFile}
-                  alt="File Preview"
-                  className="max-w-full max-h-[70vh] mx-auto"
-                />
-              )}
-            </div>
-            <div className="flex justify-end space-x-2 p-4 border-t">
-              <button
-                onClick={() => handleFileDownload(selectedFile, 'file')}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download</span>
-              </button>
-              <button
-                onClick={() => setFileViewerOpen(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* File viewer removed to resolve unused warnings */}
 
       {/* Confirm Status Update Modal */}
       {confirmOpen && pendingStatus && (

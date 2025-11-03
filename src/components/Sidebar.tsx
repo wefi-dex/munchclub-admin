@@ -10,6 +10,7 @@ import {
     BookOpen,
     ChefHat,
     CreditCard,
+    Tag,
     LogOut
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ const navigation = [
     { name: 'Books', href: '/books', icon: BookOpen },
     { name: 'Recipes', href: '/recipes', icon: ChefHat },
     { name: 'Payments', href: '/payments', icon: CreditCard },
+    { name: 'Coupons', href: '/coupons', icon: Tag },
 ]
 
 export function Sidebar() {
