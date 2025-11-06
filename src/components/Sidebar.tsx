@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
@@ -38,11 +39,15 @@ export function Sidebar() {
             {/* Logo Section */}
             <div className="flex items-center justify-center h-20 px-6 gradient-primary" suppressHydrationWarning>
                 <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl">🍽️</span>
-                    </div>
+                    <Image
+                        src="/assets/images/logo.png"
+                        alt="MunchClub Logo"
+                        width={40}
+                        height={40}
+                        className="object-contain"
+                    />
                     <div>
-                        <h1 className="text-xl font-bold text-white">Munchclub</h1>
+                        <h1 className="text-xl font-bold text-white">MunchClub</h1>
                         <p className="text-xs text-white/80">Admin Dashboard</p>
                     </div>
                 </div>
