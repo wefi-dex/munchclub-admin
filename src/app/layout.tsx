@@ -9,8 +9,12 @@ import { PreventExtensionModification } from '@/components/PreventExtensionModif
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'The Munchclub Admin Dashboard',
-  description: 'Admin dashboard for The Munchclub platform',
+  title: 'MunchClub Admin Dashboard',
+  description: 'Admin dashboard for MunchClub platform',  
+  icons: {
+    icon: 'icon.png',
+    apple: 'icon.png',
+  },
 }
 
 export default function RootLayout({
